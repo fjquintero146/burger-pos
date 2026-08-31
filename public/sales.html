@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte de Ventas</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="sales.css">
+</head>
+<body>
+
+<header class="topbar-admin">
+  <h1>📊 Reporte de Ventas</h1>
+  <a class="link-volver" href="pos.html">← Volver a Caja</a>
+</header>
+
+<main class="contenedor-ventas">
+
+  <section class="tarjeta-filtro">
+    <div class="campo-fecha">
+      <label for="fechaDesde">Desde</label>
+      <input type="date" id="fechaDesde">
+    </div>
+    <div class="campo-fecha">
+      <label for="fechaHasta">Hasta</label>
+      <input type="date" id="fechaHasta">
+    </div>
+    <button id="botonHoy" class="boton-atajo">Hoy</button>
+    <button id="botonSemana" class="boton-atajo">Últimos 7 días</button>
+    <button id="botonMes" class="boton-atajo">Este mes</button>
+    <button id="botonBuscar" class="boton-buscar">Buscar</button>
+  </section>
+
+  <section class="resumen-ventas">
+    <div class="tarjeta-resumen">
+      <p class="resumen-valor" id="resumenIngresos">$0</p>
+      <p class="resumen-etiqueta">Ingresos totales</p>
+    </div>
+    <div class="tarjeta-resumen">
+      <p class="resumen-valor" id="resumenPedidos">0</p>
+      <p class="resumen-etiqueta">Pedidos</p>
+    </div>
+    <div class="tarjeta-resumen">
+      <p class="resumen-valor" id="resumenPromedio">$0</p>
+      <p class="resumen-etiqueta">Promedio por pedido</p>
+    </div>
+  </section>
+
+  <section class="tarjeta-tabla">
+    <h2>Ventas por día</h2>
+    <table class="tabla-ventas" id="tablaPorDia">
+      <thead><tr><th>Fecha</th><th>Pedidos</th><th>Ingresos</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="sin-datos" id="sinDatosDia" style="display:none;">No hay ventas en este rango de fechas</p>
+  </section>
+
+  <section class="tarjeta-tabla">
+    <h2>Productos más vendidos</h2>
+    <table class="tabla-ventas" id="tablaPorProducto">
+      <thead><tr><th>Producto</th><th>Cantidad</th><th>Ingresos</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="sin-datos" id="sinDatosProducto" style="display:none;">No hay ventas en este rango de fechas</p>
+  </section>
+
+</main>
+
+<script src="sales.js"></script>
+</body>
+</html>

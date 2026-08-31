@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cocina - Pedidos</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="kds.css">
+</head>
+<body>
+
+<header class="topbar-kds">
+  <h1>👨‍🍳 Pedidos en Cocina</h1>
+  <div class="reloj" id="reloj"></div>
+</header>
+
+<main class="columnas">
+  <section class="columna" data-estado="pendiente">
+    <h2 class="titulo-columna pendiente">Pendientes</h2>
+    <div class="tarjetas" id="col-pendiente"></div>
+  </section>
+
+  <section class="columna" data-estado="preparando">
+    <h2 class="titulo-columna preparando">En Preparación</h2>
+    <div class="tarjetas" id="col-preparando"></div>
+  </section>
+
+  <section class="columna" data-estado="listo">
+    <h2 class="titulo-columna listo">Listos</h2>
+    <div class="tarjetas" id="col-listo"></div>
+  </section>
+</main>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="kds.js"></script>
+</body>
+</html>

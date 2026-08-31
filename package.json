@@ -1,0 +1,19 @@
+{
+  "name": "burger-pos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema POS + KDS para local de hamburguesas",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.17.4",
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}

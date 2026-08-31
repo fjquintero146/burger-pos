@@ -1,0 +1,6 @@
+node_modules/
+.env
+burger-pos.db
+burger-pos.db-shm
+burger-pos.db-wal
+*.log

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Caja - Pedidos</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="pos.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>🍔 Toma de Pedidos</h1>
+  <div class="topbar-derecha">
+    <button class="boton-pedidos-activos" id="botonPedidosActivos">📋 Pedidos Activos</button>
+    <div class="ultimo-pedido" id="ultimoPedido"></div>
+  </div>
+</header>
+
+<main class="layout">
+
+  <section class="menu-panel">
+    <nav class="tabs" id="tabs"></nav>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <aside class="carrito">
+    <h2 id="tituloCarrito">Pedido Actual</h2>
+    <label class="campo-cliente-label" for="campoCliente">Nombre de quien pide (opcional)</label>
+    <input type="text" id="campoCliente" class="campo-cliente" placeholder="Ej: Carlos, mesa 4...">
+    <div class="items-carrito" id="itemsCarrito">
+      <p class="vacio" id="mensajeVacio">Toca un producto para agregarlo</p>
+    </div>
+    <div class="total-linea">
+      <span>Total</span>
+      <span id="total">$0</span>
+    </div>
+    <button class="boton-enviar" id="botonEnviar">ENVIAR A COCINA</button>
+    <button class="boton-cancelar" id="botonCancelar">Cancelar Pedido</button>
+  </aside>
+
+</main>
+
+<div class="toast" id="toast"></div>
+<a class="link-admin" href="admin.html" title="Administrar menú">⚙️</a>
+<a class="link-ventas" href="sales.html" title="Ver ventas">📊</a>
+
+<div class="modal-fondo" id="modalFondo">
+  <div class="modal-caja">
+    <h3 id="modalTitulo">Personalizar</h3>
+    <p class="modal-sub">Desmarca lo que el cliente NO quiere:</p>
+    <div id="modalIngredientes" class="modal-ingredientes"></div>
+    <label class="modal-nota-label" for="modalNota">Nota adicional (opcional)</label>
+    <input type="text" id="modalNota" class="modal-nota" placeholder="Ej: extra salsa, bien cocida...">
+    <div class="modal-botones">
+      <button id="modalCancelar" class="modal-btn-cancelar">Cancelar</button>
+      <button id="modalConfirmar" class="modal-btn-confirmar">Agregar al pedido</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalPedidosFondo">
+  <div class="modal-caja modal-caja-ancha">
+    <h3>Pedidos Activos</h3>
+    <p class="modal-sub">Elige un pedido para agregar o quitar productos:</p>
+    <div id="listaPedidosActivos" class="lista-pedidos-activos"></div>
+    <div class="modal-botones">
+      <button id="botonCerrarPedidosActivos" class="modal-btn-cancelar">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="pos.js"></script>
+</body>
+</html>

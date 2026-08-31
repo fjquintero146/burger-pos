@@ -1,0 +1,39 @@
+:root {
+  --rojo: #c1272d;
+  --rojo-oscuro: #8f1c21;
+  --mostaza: #e8a33d;
+  --lechuga: #4c8c3b;
+  --pan: #f6e3b4;
+  --fondo: #fffaf0;
+  --carbon: #2b2118;
+  --gris: #7a7166;
+  --gris-claro: #e7dfcf;
+  --blanco: #ffffff;
+  --sombra: 0 2px 6px rgba(43, 33, 24, 0.15);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--fondo);
+  color: var(--carbon);
+  font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-size: 18px;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-thumb { background: var(--gris-claro); border-radius: 6px; }

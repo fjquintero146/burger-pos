@@ -1,0 +1,151 @@
+body { background: var(--carbon); }
+
+.topbar-kds {
+  background: var(--carbon);
+  color: var(--blanco);
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid var(--mostaza);
+}
+
+.topbar-kds h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.reloj {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--mostaza);
+}
+
+.columnas {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  height: calc(100vh - 72px);
+}
+
+.columna {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.titulo-columna {
+  text-align: center;
+  color: var(--blanco);
+  font-size: 20px;
+  padding: 12px;
+  border-radius: 10px;
+  margin: 0 0 12px 0;
+}
+
+.titulo-columna.pendiente { background: var(--rojo); }
+.titulo-columna.preparando { background: var(--mostaza); color: var(--carbon); }
+.titulo-columna.listo { background: var(--lechuga); }
+
+.tarjetas {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 20px;
+}
+
+.tarjeta {
+  background: var(--blanco);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: var(--sombra);
+  border-left: 8px solid var(--gris-claro);
+}
+
+.tarjeta.pendiente { border-left-color: var(--rojo); }
+.tarjeta.preparando { border-left-color: var(--mostaza); }
+.tarjeta.listo { border-left-color: var(--lechuga); }
+
+.tarjeta .cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.tarjeta .numero {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.tarjeta .tiempo {
+  font-size: 15px;
+  color: var(--gris);
+}
+
+.tarjeta ul {
+  list-style: none;
+  margin: 0 0 14px 0;
+  padding: 0;
+}
+
+.tarjeta li {
+  font-size: 19px;
+  padding: 4px 0;
+  font-weight: 600;
+}
+
+.tarjeta li .cant {
+  color: var(--rojo-oscuro);
+  margin-right: 6px;
+}
+
+.nota-kds {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--rojo);
+  font-style: italic;
+  margin-left: 26px;
+}
+
+.cliente-kds {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gris);
+}
+
+.marca-editado {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--rojo-oscuro);
+  background: #fdecea;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+.tarjeta button {
+  width: 100%;
+  padding: 14px;
+  font-size: 19px;
+  font-weight: 800;
+  border-radius: 10px;
+  color: var(--blanco);
+}
+
+.tarjeta.pendiente button { background: var(--mostaza); color: var(--carbon); }
+.tarjeta.preparando button { background: var(--lechuga); }
+.tarjeta.listo button { background: var(--carbon); }
+
+.vacio-columna {
+  color: var(--gris-claro);
+  text-align: center;
+  margin-top: 30px;
+  font-size: 17px;
+}
