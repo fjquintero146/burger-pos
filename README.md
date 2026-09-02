@@ -13,8 +13,9 @@ puede desplegar en internet de forma gratuita (ver sección "Desplegar en intern
   se abre una ventana para quitar ingredientes que el cliente no quiera (ej. "sin cebolla") y
   agregar una nota adicional (ej. "extra salsa"). Se puede escribir el nombre de quien pide
   el pedido, pero es opcional.
-- **Autopedido en mesa:** una pantalla pública (`kiosk.html`) para tablets fijas en las mesas,
-  donde el cliente arma su propio pedido indicando el número de mesa. Ese pedido queda
+- **Autopedido:** una pantalla pública (`kiosk.html`) para tablets en el local, donde el
+  cliente arma su propio pedido y le pone un nombre (para identificarlo, no un número de
+  mesa). Ese pedido queda
   **esperando pago** — no aparece en cocina hasta que caja confirme el pago desde el panel
   "💳 Por Cobrar".
 - **Editar pedidos ya enviados:** con el botón "📋 Pedidos Activos" en caja, se puede volver a
@@ -24,7 +25,8 @@ puede desplegar en internet de forma gratuita (ver sección "Desplegar en intern
   ventana con la factura lista para imprimir en tu impresora POS térmica.
 - **Cocina (KDS):** pantalla que muestra los pedidos en 3 columnas: Pendientes, En
   preparación, Listos — con la personalización de cada hamburguesa en rojo, el nombre del
-  cliente o número de mesa, y una marca "✎ Editado" si el pedido cambió después de enviarse.
+  cliente o el nombre puesto en el autopedido, y una marca "✎ Editado" si el pedido cambió
+  después de enviarse.
 - **Administrar Menú:** agregar productos, cambiar nombres, precios e ingredientes, ocultar
   productos que ya no se venden, o eliminarlos (solo si nunca se han usado en un pedido).
 - **Usuarios:** el administrador crea, desactiva o cambia la clave de las cuentas de cajero
@@ -88,9 +90,9 @@ Administrar Menú).
 
 5. Dejar esa pantalla abierta en la tablet durante todo el turno.
 
-6. **Para las tablets de autopedido en las mesas:** no necesitan login. Ábrelas directo en
-   `http://localhost:3000/kiosk.html` (o, si quieres dejarla fija en una mesa específica,
-   `http://localhost:3000/kiosk.html?mesa=5` para que el número de mesa quede precargado).
+6. **Para las tablets de autopedido:** no necesitan login. Ábrelas directo en
+   `http://localhost:3000/kiosk.html` (o, si quieres dejarla con un nombre precargado,
+   `http://localhost:3000/kiosk.html?nombre=Camilo`).
 
 7. **Para administrar el menú:** entra con una cuenta de rol "administrador" — desde ahí hay
    enlaces directos a Usuarios, Ventas, Caja y Cocina.
@@ -111,22 +113,23 @@ Si el cliente quiere agregar o quitar algo después de haber enviado el pedido:
 Un pedido que ya fue marcado como "Entregado" en cocina no se puede editar (para proteger
 el historial de ventas ya cerradas).
 
-## Autopedido en las mesas (sin login)
+## Autopedido (sin login)
 
-Para las tablets que dejas fijas en las mesas, para que el cliente arme su propio pedido:
+Para las tablets que dejas disponibles en el local, para que el cliente arme su propio pedido:
 
-1. El cliente abre `kiosk.html`, escribe el número de su mesa, arma el pedido igual que en
-   caja (con la misma opción de personalizar ingredientes) y toca **"ENVIAR PEDIDO"**.
+1. El cliente abre `kiosk.html`, escribe su nombre (para identificar el pedido), arma el
+   pedido igual que en caja (con la misma opción de personalizar ingredientes) y toca
+   **"ENVIAR PEDIDO"**.
 2. El pedido queda con el estado **"esperando pago"** — todavía NO aparece en cocina.
 3. En caja, el botón **"💳 Por Cobrar"** (arriba a la izquierda, con un contador) muestra
-   todos los autopedidos esperando pago, con su mesa y sus productos.
+   todos los autopedidos esperando pago, con el nombre y los productos.
 4. El cajero cobra al cliente (en efectivo, tarjeta, etc. — eso se maneja fuera del sistema)
    y toca **"Confirmar Pago"**. Ahí el pedido pasa a cocina, se imprime la factura, y ya se ve
    normal en el KDS.
 
-Si dejas varias tablets fijas por mesa, puedes abrir cada una directamente en la mesa que le
-corresponde con `kiosk.html?mesa=NÚMERO` (por ejemplo `kiosk.html?mesa=5`), así el cliente no
-tiene que escribirlo — aunque igual puede cambiarlo si es necesario.
+Si quieres dejar una tablet con un nombre precargado (por ejemplo, un punto fijo de
+autopedido), puedes abrirla con `kiosk.html?nombre=NOMBRE` — aunque el cliente igual puede
+cambiarlo si lo necesita.
 
 ## Desplegar en internet (Northflank + Turso, gratis)
 
@@ -174,7 +177,7 @@ en GitHub (puede ser privado). El archivo `.gitignore` ya está configurado para
 ### Paso 4: Usarla
 
 - **Login (todo el personal empieza aquí):** `https://tu-url.northflank.app/login.html`
-- **Autopedido en mesas (sin login):** `https://tu-url.northflank.app/kiosk.html`
+- **Autopedido (sin login):** `https://tu-url.northflank.app/kiosk.html`
 
 Una vez desplegado, cualquier tablet o celular con internet puede usar el sistema desde
 cualquier lugar — ya no hace falta estar en la misma WiFi.

@@ -25,9 +25,11 @@ const modalConfirmacionFondo = document.getElementById('modalConfirmacionFondo')
 const confirmacionTexto = document.getElementById('confirmacionTexto');
 const botonNuevoPedido = document.getElementById('botonNuevoPedido');
 
-// Si la tablet quedó fija en una mesa, se puede abrir con ?mesa=5 y queda precargada.
-const mesaDesdeUrl = new URLSearchParams(window.location.search).get('mesa');
-if (mesaDesdeUrl) campoMesaEl.value = mesaDesdeUrl;
+// Si la tablet queda fija en un punto, se puede abrir con ?nombre=Camilo y queda precargado
+// (compatibilidad: también acepta ?mesa= por si ya guardaste ese enlace).
+const nombreDesdeUrl = new URLSearchParams(window.location.search).get('nombre')
+  || new URLSearchParams(window.location.search).get('mesa');
+if (nombreDesdeUrl) campoMesaEl.value = nombreDesdeUrl;
 
 function formatoDinero(valor) {
   return '$' + valor.toLocaleString('es-CO');
@@ -170,7 +172,7 @@ function renderCarrito() {
 async function enviarPedido() {
   const mesa = campoMesaEl.value.trim();
   if (!mesa) {
-    mostrarToast('Escribe el número de tu mesa antes de enviar');
+    mostrarToast('Escribe tu nombre antes de enviar');
     campoMesaEl.focus();
     return;
   }
@@ -192,7 +194,7 @@ async function enviarPedido() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error del servidor');
 
-    confirmacionTexto.textContent = `Pedido #${data.orderNumber} — Mesa ${mesa}`;
+    confirmacionTexto.textContent = `Pedido #${data.orderNumber} — ${mesa}`;
     modalConfirmacionFondo.classList.add('visible');
 
     carrito = {};

@@ -375,7 +375,7 @@ async function abrirPorCobrar() {
     fila.innerHTML = `
       <div class="info-pedido">
         <div class="numero-pedido">
-          <span class="mesa-pedido">Mesa ${pedido.tableNumber || '?'}</span>
+          <span class="mesa-pedido">${pedido.tableNumber || 'Sin nombre'}</span>
           Pedido #${pedido.orderNumber}
         </div>
         <div class="detalle-pedido">${resumenItems} · ${formatoDinero(pedido.total)}</div>
@@ -408,7 +408,7 @@ modalCobrarFondo.onclick = e => { if (e.target === modalCobrarFondo) modalCobrar
 
 // Cuando llega un autopedido nuevo desde una tablet de mesa, avisa y actualiza el contador.
 socket.on('kiosk-order-created', pedido => {
-  mostrarToast(`Nuevo autopedido — Mesa ${pedido.tableNumber || '?'} — Pedido #${pedido.orderNumber}`);
+  mostrarToast(`Nuevo autopedido — ${pedido.tableNumber || 'sin nombre'} — Pedido #${pedido.orderNumber}`);
   actualizarBadgeCobrar();
 });
 socket.on('order-created', actualizarBadgeCobrar);

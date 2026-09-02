@@ -13,13 +13,13 @@
 }
 
 .campo-mesa-topbar input {
-  width: 70px;
+  width: 160px;
   padding: 8px;
   font-size: 17px;
   font-weight: 700;
   border: none;
   border-radius: 6px;
-  text-align: center;
+  text-align: left;
 }
 
 .confirmacion-caja {

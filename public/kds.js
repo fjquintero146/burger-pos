@@ -34,7 +34,7 @@ function crearTarjeta(pedido) {
       <span class="numero">
         Pedido #${pedido.orderNumber}
         ${pedido.edited ? '<span class="marca-editado">✎ Editado</span>' : ''}
-        ${pedido.tableNumber ? `<span class="cliente-kds">Mesa: ${pedido.tableNumber}</span>` : ''}
+        ${pedido.tableNumber ? `<span class="cliente-kds">${pedido.tableNumber}</span>` : ''}
         ${pedido.customerName ? `<span class="cliente-kds">${pedido.customerName}</span>` : ''}
       </span>
       <span class="tiempo">${tiempoTranscurrido(pedido.createdAt)}</span>
