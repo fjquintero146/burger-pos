@@ -56,6 +56,7 @@ function renderFactura(pedido) {
     <div class="f-datos">
       <p>Fecha: ${formatoFecha(pedido.createdAt)}</p>
       ${pedido.customerName ? `<p>Cliente: ${pedido.customerName}</p>` : ''}
+      ${pedido.tableNumber ? `<p>Mesa: ${pedido.tableNumber}</p>` : ''}
     </div>
     <div class="f-linea"></div>
     <table class="f-items">
