@@ -113,3 +113,9 @@ const hoyISO = fechaLocalISO(new Date());
 fechaDesdeEl.value = hoyISO;
 fechaHastaEl.value = hoyISO;
 cargarReporte();
+
+document.getElementById('botonSalir').onclick = async e => {
+  e.preventDefault();
+  await fetch('/api/logout', { method: 'POST' });
+  window.location.href = 'login.html';
+};

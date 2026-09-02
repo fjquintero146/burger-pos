@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Haz tu Pedido</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="pos.css">
+<link rel="stylesheet" href="kiosk.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>🍔 Haz tu Pedido</h1>
+  <div class="topbar-derecha">
+    <div class="campo-mesa-topbar">
+      <label for="campoMesa">Mesa</label>
+      <input type="text" id="campoMesa" placeholder="Nº mesa" inputmode="numeric">
+    </div>
+  </div>
+</header>
+
+<main class="layout">
+
+  <section class="menu-panel">
+    <nav class="tabs" id="tabs"></nav>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <aside class="carrito">
+    <h2>Tu Pedido</h2>
+    <div class="items-carrito" id="itemsCarrito">
+      <p class="vacio" id="mensajeVacio">Toca un producto para agregarlo</p>
+    </div>
+    <div class="total-linea">
+      <span>Total</span>
+      <span id="total">$0</span>
+    </div>
+    <button class="boton-enviar" id="botonEnviar">ENVIAR PEDIDO</button>
+    <button class="boton-cancelar" id="botonCancelar">Vaciar Pedido</button>
+  </aside>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-fondo" id="modalFondo">
+  <div class="modal-caja">
+    <h3 id="modalTitulo">Personalizar</h3>
+    <p class="modal-sub">Desmarca lo que NO quieres:</p>
+    <div id="modalIngredientes" class="modal-ingredientes"></div>
+    <label class="modal-nota-label" for="modalNota">Nota adicional (opcional)</label>
+    <input type="text" id="modalNota" class="modal-nota" placeholder="Ej: extra salsa, bien cocida...">
+    <div class="modal-botones">
+      <button id="modalCancelar" class="modal-btn-cancelar">Cancelar</button>
+      <button id="modalConfirmar" class="modal-btn-confirmar">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalConfirmacionFondo">
+  <div class="modal-caja confirmacion-caja">
+    <div class="confirmacion-icono">✅</div>
+    <h3>¡Pedido enviado!</h3>
+    <p class="confirmacion-texto" id="confirmacionTexto"></p>
+    <p class="confirmacion-aviso">Dirígete a caja a pagar tu pedido. En cuanto se confirme el pago, pasa a cocina.</p>
+    <button id="botonNuevoPedido" class="modal-btn-confirmar">Hacer otro pedido</button>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="kiosk.js"></script>
+</body>
+</html>

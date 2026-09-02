@@ -112,3 +112,9 @@ setInterval(() => {
 
 actualizarReloj();
 cargarPedidos();
+
+document.getElementById('botonSalir').onclick = async e => {
+  e.preventDefault();
+  await fetch('/api/logout', { method: 'POST' });
+  window.location.href = 'login.html';
+};

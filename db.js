@@ -35,7 +35,9 @@ async function initDb() {
       total INTEGER NOT NULL,
       created_at TEXT NOT NULL,
       customer_name TEXT,
-      edited INTEGER NOT NULL DEFAULT 0
+      edited INTEGER NOT NULL DEFAULT 0,
+      table_number TEXT,
+      source TEXT NOT NULL DEFAULT 'caja'
     )
   `);
 
@@ -58,6 +60,27 @@ async function initDb() {
       value INTEGER NOT NULL
     )
   `);
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL,
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL
+    )
+  `);
+
+  // Migración: agrega columnas nuevas a bases de datos creadas con una versión
+  // anterior de la app, sin perder los datos que ya tengan.
+  const columnasOrders = (await db.execute('PRAGMA table_info(orders)')).rows.map(c => c.name);
+  if (!columnasOrders.includes('table_number')) {
+    await db.execute('ALTER TABLE orders ADD COLUMN table_number TEXT');
+  }
+  if (!columnasOrders.includes('source')) {
+    await db.execute("ALTER TABLE orders ADD COLUMN source TEXT NOT NULL DEFAULT 'caja'");
+  }
 
   // Semilla inicial del menú, solo si la tabla está vacía
   const totalItems = await db.execute('SELECT COUNT(*) AS n FROM menu_items');
@@ -91,6 +114,29 @@ async function initDb() {
       sql: 'INSERT INTO counters (name, value) VALUES (?, ?)',
       args: ['order_number', 1]
     });
+  }
+
+  // Si no hay ningún usuario todavía, crea un administrador inicial para
+  // poder entrar por primera vez y crear las demás cuentas desde ahí.
+  const totalUsuarios = await db.execute('SELECT COUNT(*) AS n FROM users');
+  if (Number(totalUsuarios.rows[0].n) === 0) {
+    const bcrypt = require('bcryptjs');
+    const passwordInicial = process.env.ADMIN_PASSWORD || Math.random().toString(36).slice(-10);
+    const hash = await bcrypt.hash(passwordInicial, 10);
+    await db.execute({
+      sql: 'INSERT INTO users (id, username, password_hash, role, active, created_at) VALUES (?, ?, ?, ?, 1, ?)',
+      args: ['u' + Date.now(), 'admin', hash, 'administrador', new Date().toISOString()]
+    });
+    console.log('==========================================');
+    console.log(' Usuario administrador creado por primera vez:');
+    console.log(' Usuario:  admin');
+    if (!process.env.ADMIN_PASSWORD) {
+      console.log(` Clave:    ${passwordInicial}  (guárdala, no se vuelve a mostrar)`);
+    } else {
+      console.log(' Clave:    la que pusiste en ADMIN_PASSWORD');
+    }
+    console.log(' Entra y crea las demás cuentas desde /users.html');
+    console.log('==========================================');
   }
 }
 

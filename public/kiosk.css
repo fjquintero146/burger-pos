@@ -1,0 +1,65 @@
+.campo-mesa-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 6px 14px;
+  border-radius: 8px;
+}
+
+.campo-mesa-topbar label {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.campo-mesa-topbar input {
+  width: 70px;
+  padding: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.confirmacion-caja {
+  text-align: center;
+  max-width: 420px;
+}
+
+.confirmacion-icono {
+  font-size: 56px;
+  margin-bottom: 8px;
+}
+
+.confirmacion-texto {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 8px 0;
+}
+
+.confirmacion-aviso {
+  color: var(--gris);
+  font-size: 16px;
+  margin-bottom: 22px;
+}
+
+#botonNuevoPedido {
+  width: 100%;
+  padding: 18px;
+  font-size: 19px;
+}
+
+/* Pantalla pensada primero para tablet/celular: botones aún más grandes */
+@media (max-width: 700px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  .topbar h1 {
+    font-size: 21px;
+  }
+  .tab-boton {
+    font-size: 17px;
+    padding: 12px 16px;
+  }
+}

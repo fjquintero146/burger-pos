@@ -1,0 +1,56 @@
+.lista-usuarios {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fila-usuario {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 2px solid var(--gris-claro);
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+
+.fila-usuario.inactivo {
+  opacity: 0.5;
+}
+
+.fila-usuario .nombre-usuario {
+  font-weight: 800;
+  font-size: 17px;
+  flex: 1;
+  min-width: 120px;
+}
+
+.etiqueta-rol {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--gris-claro);
+  color: var(--carbon);
+  text-transform: uppercase;
+}
+
+.etiqueta-rol.administrador { background: var(--mostaza); }
+.etiqueta-rol.cajero { background: #e3f2da; color: var(--lechuga); }
+.etiqueta-rol.cocina { background: #fdecea; color: var(--rojo); }
+
+.fila-usuario input[type="text"] {
+  flex: 1;
+  min-width: 140px;
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid var(--gris-claro);
+  border-radius: 6px;
+}
+
+.fila-usuario button {
+  padding: 9px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}

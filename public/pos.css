@@ -27,6 +27,33 @@
   border-radius: 8px;
 }
 
+.boton-cobrar {
+  position: relative;
+  background: var(--lechuga);
+  color: var(--blanco);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 8px;
+}
+
+.badge-cobrar {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--rojo);
+  color: var(--blanco);
+  font-size: 12px;
+  font-weight: 800;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
 .ultimo-pedido {
   font-size: 18px;
   background: rgba(255, 255, 255, 0.15);
@@ -293,9 +320,56 @@
 
 .link-ventas:hover { opacity: 1; }
 
+.link-salir {
+  position: fixed;
+  bottom: 14px;
+  right: 98px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(193, 39, 45, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 16px;
+  opacity: 0.7;
+}
+
+.link-salir:hover { opacity: 1; }
+
+.fila-pedido-activo .mesa-pedido {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  background: var(--lechuga);
+  color: var(--blanco);
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-right: 6px;
+}
+
+.fila-pedido-activo .btn-cobrar {
+  background: var(--lechuga) !important;
+  color: var(--blanco) !important;
+}
+
 @media (max-width: 900px) {
   .layout { flex-direction: column; height: auto; }
-  .carrito { width: auto; border-left: none; border-top: 3px solid var(--gris-claro); }
+  .carrito { width: auto; border-left: none; border-top: 3px solid var(--gris-claro); padding-bottom: 60px; }
+}
+
+@media (max-width: 600px) {
+  .topbar { flex-wrap: wrap; gap: 10px; padding: 14px 16px; }
+  .topbar h1 { font-size: 21px; }
+  .topbar-derecha { flex-wrap: wrap; gap: 8px; width: 100%; }
+  .boton-pedidos-activos, .boton-cobrar { font-size: 14px; padding: 9px 12px; flex: 1; }
+  .ultimo-pedido { font-size: 15px; padding: 6px 10px; width: 100%; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 10px; }
+  .producto { min-height: 80px; padding: 12px 10px; }
+  .producto .nombre { font-size: 17px; }
+  .producto .precio { font-size: 16px; }
+  .tab-boton { font-size: 16px; padding: 10px 14px; }
 }
 
 /* ---- Modal de personalización ---- */

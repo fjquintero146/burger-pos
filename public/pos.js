@@ -32,6 +32,12 @@ const modalPedidosFondo = document.getElementById('modalPedidosFondo');
 const listaPedidosActivosEl = document.getElementById('listaPedidosActivos');
 const botonCerrarPedidosActivos = document.getElementById('botonCerrarPedidosActivos');
 
+const botonPorCobrar = document.getElementById('botonPorCobrar');
+const badgeCobrar = document.getElementById('badgeCobrar');
+const modalCobrarFondo = document.getElementById('modalCobrarFondo');
+const listaPorCobrarEl = document.getElementById('listaPorCobrar');
+const botonCerrarPorCobrar = document.getElementById('botonCerrarPorCobrar');
+
 function formatoDinero(valor) {
   return '$' + valor.toLocaleString('es-CO');
 }
@@ -272,7 +278,7 @@ async function abrirPedidosActivos() {
   listaPedidosActivosEl.innerHTML = '<p class="sin-pedidos-activos">Cargando...</p>';
 
   const res = await fetch('/api/orders');
-  const pedidos = (await res.json()).filter(p => p.status !== 'entregado');
+  const pedidos = (await res.json()).filter(p => ['pendiente', 'preparando', 'listo'].includes(p.status));
 
   if (!pedidos.length) {
     listaPedidosActivosEl.innerHTML = '<p class="sin-pedidos-activos">No hay pedidos activos en este momento</p>';
@@ -335,8 +341,99 @@ botonPedidosActivos.onclick = abrirPedidosActivos;
 botonCerrarPedidosActivos.onclick = () => modalPedidosFondo.classList.remove('visible');
 modalPedidosFondo.onclick = e => { if (e.target === modalPedidosFondo) modalPedidosFondo.classList.remove('visible'); };
 
+// ---------- Pedidos por cobrar (autopedidos de mesa esperando pago) ----------
+
+async function actualizarBadgeCobrar() {
+  const res = await fetch('/api/orders');
+  const pedidos = await res.json();
+  const enEspera = pedidos.filter(p => p.status === 'esperando_pago');
+  if (enEspera.length > 0) {
+    badgeCobrar.textContent = enEspera.length;
+    badgeCobrar.style.display = 'flex';
+  } else {
+    badgeCobrar.style.display = 'none';
+  }
+  return enEspera;
+}
+
+async function abrirPorCobrar() {
+  modalCobrarFondo.classList.add('visible');
+  listaPorCobrarEl.innerHTML = '<p class="sin-pedidos-activos">Cargando...</p>';
+
+  const enEspera = await actualizarBadgeCobrar();
+
+  if (!enEspera.length) {
+    listaPorCobrarEl.innerHTML = '<p class="sin-pedidos-activos">No hay pedidos esperando pago</p>';
+    return;
+  }
+
+  listaPorCobrarEl.innerHTML = '';
+  enEspera.forEach(pedido => {
+    const fila = document.createElement('div');
+    fila.className = 'fila-pedido-activo';
+    const resumenItems = pedido.items.map(i => `${i.qty}x ${i.name}`).join(', ');
+    fila.innerHTML = `
+      <div class="info-pedido">
+        <div class="numero-pedido">
+          <span class="mesa-pedido">Mesa ${pedido.tableNumber || '?'}</span>
+          Pedido #${pedido.orderNumber}
+        </div>
+        <div class="detalle-pedido">${resumenItems} · ${formatoDinero(pedido.total)}</div>
+      </div>
+      <button class="btn-cobrar">Confirmar Pago</button>
+    `;
+    fila.querySelector('button').onclick = () => confirmarPago(pedido);
+    listaPorCobrarEl.appendChild(fila);
+  });
+}
+
+async function confirmarPago(pedido) {
+  try {
+    const res = await fetch(`/api/orders/${pedido.id}/confirmar-pago`, { method: 'PATCH' });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'No se pudo confirmar el pago');
+    }
+    mostrarToast(`Pago confirmado — Pedido #${pedido.orderNumber} pasó a cocina`);
+    window.open(`receipt.html?id=${pedido.id}`, '_blank', 'width=380,height=640');
+    abrirPorCobrar();
+  } catch (e) {
+    mostrarToast(e.message || 'Error al confirmar el pago');
+  }
+}
+
+botonPorCobrar.onclick = abrirPorCobrar;
+botonCerrarPorCobrar.onclick = () => modalCobrarFondo.classList.remove('visible');
+modalCobrarFondo.onclick = e => { if (e.target === modalCobrarFondo) modalCobrarFondo.classList.remove('visible'); };
+
+// Cuando llega un autopedido nuevo desde una tablet de mesa, avisa y actualiza el contador.
+socket.on('kiosk-order-created', pedido => {
+  mostrarToast(`Nuevo autopedido — Mesa ${pedido.tableNumber || '?'} — Pedido #${pedido.orderNumber}`);
+  actualizarBadgeCobrar();
+});
+socket.on('order-created', actualizarBadgeCobrar);
+
+// ---------- Sesión ----------
+
+async function cargarSesion() {
+  const res = await fetch('/api/me');
+  const data = await res.json();
+  if (data.user && data.user.role === 'administrador') {
+    document.getElementById('linkAdmin').style.display = 'flex';
+    document.getElementById('linkVentas').style.display = 'flex';
+  }
+}
+
+document.getElementById('botonSalir').onclick = async e => {
+  e.preventDefault();
+  await fetch('/api/logout', { method: 'POST' });
+  window.location.href = 'login.html';
+};
+
 // El menú se refresca al instante si alguien lo edita desde Administrar Menú.
 socket.on('menu-updated', cargarMenu);
 
+cargarSesion();
+actualizarBadgeCobrar();
 cargarMenu();
 renderCarrito();

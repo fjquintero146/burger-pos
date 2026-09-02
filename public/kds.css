@@ -21,6 +21,22 @@ body { background: var(--carbon); }
   color: var(--mostaza);
 }
 
+.topbar-kds-derecha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.link-salir-kds {
+  color: var(--blanco);
+  opacity: 0.6;
+  font-size: 18px;
+  text-decoration: none;
+  margin-left: 12px;
+}
+
+.link-salir-kds:hover { opacity: 1; }
+
 .columnas {
   display: flex;
   gap: 14px;
@@ -148,4 +164,18 @@ body { background: var(--carbon); }
   text-align: center;
   margin-top: 30px;
   font-size: 17px;
+}
+
+@media (max-width: 700px) {
+  .columnas {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+  .columna {
+    min-width: 85vw;
+    scroll-snap-align: start;
+  }
+  .topbar-kds h1 { font-size: 20px; }
+  .tarjeta .numero { font-size: 20px; }
+  .tarjeta li { font-size: 17px; }
 }

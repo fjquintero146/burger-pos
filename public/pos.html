@@ -12,6 +12,7 @@
 <header class="topbar">
   <h1>🍔 Toma de Pedidos</h1>
   <div class="topbar-derecha">
+    <button class="boton-cobrar" id="botonPorCobrar">💳 Por Cobrar <span class="badge-cobrar" id="badgeCobrar" style="display:none;">0</span></button>
     <button class="boton-pedidos-activos" id="botonPedidosActivos">📋 Pedidos Activos</button>
     <div class="ultimo-pedido" id="ultimoPedido"></div>
   </div>
@@ -42,8 +43,9 @@
 </main>
 
 <div class="toast" id="toast"></div>
-<a class="link-admin" href="admin.html" title="Administrar menú">⚙️</a>
-<a class="link-ventas" href="sales.html" title="Ver ventas">📊</a>
+<a class="link-admin" href="admin.html" title="Administrar menú" id="linkAdmin" style="display:none;">⚙️</a>
+<a class="link-ventas" href="sales.html" title="Ver ventas" id="linkVentas" style="display:none;">📊</a>
+<a class="link-salir" href="#" title="Cerrar sesión" id="botonSalir">🚪</a>
 
 <div class="modal-fondo" id="modalFondo">
   <div class="modal-caja">
@@ -66,6 +68,17 @@
     <div id="listaPedidosActivos" class="lista-pedidos-activos"></div>
     <div class="modal-botones">
       <button id="botonCerrarPedidosActivos" class="modal-btn-cancelar">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalCobrarFondo">
+  <div class="modal-caja modal-caja-ancha">
+    <h3>💳 Pedidos por Cobrar</h3>
+    <p class="modal-sub">Autopedidos de mesa esperando que se confirme el pago:</p>
+    <div id="listaPorCobrar" class="lista-pedidos-activos"></div>
+    <div class="modal-botones">
+      <button id="botonCerrarPorCobrar" class="modal-btn-cancelar">Cerrar</button>
     </div>
   </div>
 </div>

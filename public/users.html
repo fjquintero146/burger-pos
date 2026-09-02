@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Usuarios del Personal</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="users.css">
+</head>
+<body>
+
+<header class="topbar-admin">
+  <h1>👤 Usuarios del Personal</h1>
+  <div>
+    <a class="link-volver" href="admin.html">← Administrar Menú</a>
+    <a class="link-volver" href="#" id="botonSalir">Cerrar sesión</a>
+  </div>
+</header>
+
+<main class="contenedor-admin">
+
+  <section class="tarjeta-form">
+    <h2>Crear cuenta nueva</h2>
+    <form id="formNuevoUsuario" class="form-producto">
+      <div class="campo">
+        <label for="nuevoUsuario">Usuario</label>
+        <input type="text" id="nuevoUsuario" placeholder="ej: caja1" required>
+      </div>
+      <div class="campo">
+        <label for="nuevaClave">Clave</label>
+        <input type="text" id="nuevaClave" placeholder="mínimo 4 caracteres" required>
+      </div>
+      <div class="campo">
+        <label for="nuevoRol">Rol</label>
+        <select id="nuevoRol">
+          <option value="cajero">Cajero (caja)</option>
+          <option value="cocina">Cocina (KDS)</option>
+          <option value="administrador">Administrador (todo)</option>
+        </select>
+      </div>
+      <button type="submit" class="boton-agregar">Crear Usuario</button>
+    </form>
+    <p class="mensaje" id="mensajeForm"></p>
+  </section>
+
+  <section class="tarjeta-lista">
+    <h2>Cuentas existentes</h2>
+    <div id="listaUsuarios" class="lista-usuarios"></div>
+  </section>
+
+</main>
+
+<script src="users.js"></script>
+</body>
+</html>
