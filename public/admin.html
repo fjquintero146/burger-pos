@@ -13,6 +13,7 @@
   <h1>🛠️ Administrar Menú</h1>
   <div>
     <a class="link-volver" href="users.html">👤 Usuarios</a>
+    <a class="link-volver" href="settings.html">⚙️ Configuración</a>
     <a class="link-volver" href="sales.html">📊 Ventas</a>
     <a class="link-volver" href="pos.html">🧾 Caja</a>
     <a class="link-volver" href="kds.html">👨‍🍳 Cocina</a>
@@ -42,6 +43,14 @@
         <label for="nuevosIngredientes">Ingredientes (separados por coma, opcional)</label>
         <input type="text" id="nuevosIngredientes" name="ingredients" placeholder="Ej: Pan, Carne, Queso, Lechuga, Tomate, Cebolla">
       </div>
+      <div class="campo">
+        <label for="nuevaImagen">Foto o ícono (opcional)</label>
+        <div class="campo-imagen">
+          <div class="vista-imagen" id="vistaImagenNueva">Sin foto</div>
+          <label class="boton-subir-chico" for="nuevaImagen">Elegir imagen</label>
+          <input type="file" id="nuevaImagen" accept="image/*" hidden>
+        </div>
+      </div>
       <button type="submit" class="boton-agregar">Agregar Producto</button>
     </form>
     <p class="mensaje" id="mensajeForm"></p>
@@ -54,6 +63,7 @@
 
 </main>
 
+<script src="img-utils.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>

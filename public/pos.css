@@ -10,6 +10,17 @@
 .topbar h1 {
   margin: 0;
   font-size: 26px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-header {
+  height: 34px;
+  width: 34px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--blanco);
 }
 
 .topbar-derecha {
@@ -124,6 +135,14 @@
   align-items: center;
   text-align: center;
   gap: 8px;
+}
+
+.producto-img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-height: 110px;
+  object-fit: cover;
+  border-radius: 10px;
 }
 
 .producto .nombre {

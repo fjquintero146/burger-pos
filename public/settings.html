@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configuración</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="settings.css">
+</head>
+<body>
+
+<header class="topbar-admin">
+  <h1>⚙️ Configuración</h1>
+  <div>
+    <a class="link-volver" href="admin.html">🛠️ Menú</a>
+    <a class="link-volver" href="pos.html">🧾 Caja</a>
+    <a class="link-volver" href="#" id="botonSalir">Cerrar sesión</a>
+  </div>
+</header>
+
+<main class="contenedor-admin">
+
+  <section class="tarjeta-form">
+    <h2>Logo y nombre del local</h2>
+
+    <div class="campo-logo">
+      <div class="vista-logo" id="vistaLogo">Sin logo</div>
+      <div class="acciones-logo">
+        <label class="boton-subir" for="inputLogo">Subir logo</label>
+        <input type="file" id="inputLogo" accept="image/*" hidden>
+        <button type="button" id="botonQuitarLogo" class="boton-quitar">Quitar logo</button>
+      </div>
+    </div>
+
+    <div class="campo">
+      <label for="nombreLocal">Nombre del local (aparece en caja, kiosco y factura)</label>
+      <input type="text" id="nombreLocal" placeholder="Ej: Burger House">
+    </div>
+  </section>
+
+  <section class="tarjeta-form">
+    <h2>Tamaño de papel de la factura</h2>
+    <p class="sub-tarjeta">Elige el ancho de papel de tu impresora POS térmica.</p>
+    <div class="opciones-papel">
+      <label class="opcion-papel">
+        <input type="radio" name="papel" value="58mm">
+        <span>58 mm (impresoras chicas / portátiles)</span>
+      </label>
+      <label class="opcion-papel">
+        <input type="radio" name="papel" value="80mm">
+        <span>80 mm (impresoras de caja estándar)</span>
+      </label>
+    </div>
+  </section>
+
+  <button id="botonGuardar" class="boton-agregar boton-guardar-config">Guardar Configuración</button>
+  <p class="mensaje" id="mensajeForm"></p>
+
+</main>
+
+<script src="img-utils.js"></script>
+<script src="settings.js"></script>
+</body>
+</html>

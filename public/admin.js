@@ -40,7 +40,12 @@ function renderLista(productos) {
 function crearFila(producto) {
   const fila = document.createElement('div');
   fila.className = 'fila-producto' + (producto.active ? '' : ' inactivo');
+  let imagenFila = producto.image || '';
+
   fila.innerHTML = `
+    <div class="vista-imagen" id="vista-${producto.id}">${imagenFila ? `<img src="${imagenFila}">` : 'Sin foto'}</div>
+    <label class="boton-subir-chico" for="img-${producto.id}">Foto</label>
+    <input type="file" id="img-${producto.id}" accept="image/*" hidden>
     <input type="text" class="input-nombre" value="${producto.name}">
     <input type="number" class="input-precio" value="${producto.price}" min="0" step="500">
     <input type="text" class="input-ingredientes" value="${producto.ingredients || ''}" placeholder="Ingredientes separados por coma">
@@ -50,17 +55,29 @@ function crearFila(producto) {
     <button class="btn-eliminar">Eliminar</button>
   `;
 
-  fila.querySelector('.btn-guardar').onclick = () => guardarProducto(producto, fila);
+  fila.querySelector(`#img-${producto.id}`).addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      imagenFila = await redimensionarImagen(file, 300, 0.8);
+      fila.querySelector(`#vista-${producto.id}`).innerHTML = `<img src="${imagenFila}">`;
+    } catch (err) {
+      mostrarMensaje('No se pudo procesar la imagen', 'error');
+    }
+  });
+
+  fila.querySelector('.btn-guardar').onclick = () => guardarProducto(producto, fila, () => imagenFila);
   fila.querySelector('.btn-toggle').onclick = () => toggleActivo(producto);
   fila.querySelector('.btn-eliminar').onclick = () => eliminarProducto(producto);
 
   return fila;
 }
 
-async function guardarProducto(producto, fila) {
+async function guardarProducto(producto, fila, obtenerImagen) {
   const name = fila.querySelector('.input-nombre').value.trim();
   const price = fila.querySelector('.input-precio').value;
   const ingredients = fila.querySelector('.input-ingredientes').value.trim();
+  const image = obtenerImagen ? obtenerImagen() : undefined;
 
   if (!name || price === '' || isNaN(price)) {
     mostrarMensaje('Nombre y precio son obligatorios', 'error');
@@ -70,7 +87,7 @@ async function guardarProducto(producto, fila) {
   const res = await fetch(`/api/admin/menu/${producto.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, price: Number(price), ingredients })
+    body: JSON.stringify({ name, price: Number(price), ingredients, image })
   });
 
   if (res.ok) {
@@ -104,6 +121,19 @@ async function eliminarProducto(producto) {
   }
 }
 
+let imagenNueva = '';
+
+document.getElementById('nuevaImagen').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    imagenNueva = await redimensionarImagen(file, 300, 0.8);
+    document.getElementById('vistaImagenNueva').innerHTML = `<img src="${imagenNueva}">`;
+  } catch (err) {
+    mostrarMensaje('No se pudo procesar la imagen', 'error');
+  }
+});
+
 formNuevo.addEventListener('submit', async e => {
   e.preventDefault();
   const category = document.getElementById('nuevaCategoria').value.trim();
@@ -114,12 +144,14 @@ formNuevo.addEventListener('submit', async e => {
   const res = await fetch('/api/admin/menu', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ category, name, price: Number(price), ingredients })
+    body: JSON.stringify({ category, name, price: Number(price), ingredients, image: imagenNueva })
   });
 
   if (res.ok) {
     mostrarMensaje('Producto agregado correctamente', 'exito');
     formNuevo.reset();
+    imagenNueva = '';
+    document.getElementById('vistaImagenNueva').innerHTML = 'Sin foto';
     cargarProductos();
   } else {
     const data = await res.json();

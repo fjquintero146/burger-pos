@@ -28,9 +28,13 @@ puede desplegar en internet de forma gratuita (ver sección "Desplegar en intern
   cliente o el nombre puesto en el autopedido, y una marca "✎ Editado" si el pedido cambió
   después de enviarse.
 - **Administrar Menú:** agregar productos, cambiar nombres, precios e ingredientes, ocultar
-  productos que ya no se venden, o eliminarlos (solo si nunca se han usado en un pedido).
+  productos que ya no se venden, o eliminarlos (solo si nunca se han usado en un pedido). Cada
+  producto puede tener una foto o ícono, para que el personal identifique el pedido sin
+  necesidad de leer.
 - **Usuarios:** el administrador crea, desactiva o cambia la clave de las cuentas de cajero
   y cocina desde `users.html`.
+- **Configuración:** el administrador sube el logo del negocio, el nombre que aparece en caja
+  y factura, y elige el ancho de papel de la impresora (58mm o 80mm) desde `settings.html`.
 - **Reporte de Ventas:** total vendido, número de pedidos y productos más vendidos en
   cualquier rango de fechas (solo cuenta pedidos ya pagados, no los que están esperando pago).
 - Todo se actualiza al instante entre la caja, la cocina y el menú (usa WebSockets).
@@ -95,9 +99,12 @@ Administrar Menú).
    `http://localhost:3000/kiosk.html?nombre=Camilo`).
 
 7. **Para administrar el menú:** entra con una cuenta de rol "administrador" — desde ahí hay
-   enlaces directos a Usuarios, Ventas, Caja y Cocina.
+   enlaces directos a Usuarios, Configuración, Ventas, Caja y Cocina.
 
 8. **Para ver el reporte de ventas:** `http://localhost:3000/sales.html` (solo administrador).
+
+9. **Para configurar el logo, nombre del local y tamaño de papel:**
+   `http://localhost:3000/settings.html` (solo administrador).
 
 ## Editar un pedido ya enviado a cocina
 
@@ -199,18 +206,33 @@ un archivo local — perfecto para seguir probando cambios sin tocar los datos d
 
 ## Impresora de facturas
 
-Al enviar un pedido se abre sola una ventana con la factura y el diálogo de impresión.
-Elige ahí tu impresora POS como destino (el navegador recuerda la elección, así que después
-de la primera vez queda prácticamente automático). No necesita ningún driver especial: usa
-la impresión normal del navegador, así que funciona con cualquier impresora térmica que esté
-instalada como impresora de Windows/Mac.
+Al enviar un pedido, confirmar un pago, o guardar cambios, se abre sola una ventana con la
+factura y el diálogo de impresión. Elige ahí tu impresora POS como destino (el navegador
+recuerda la elección, así que después de la primera vez queda prácticamente automático). No
+necesita ningún driver especial: usa la impresión normal del navegador, así que funciona con
+cualquier impresora térmica que esté instalada como impresora de Windows/Mac.
 
-- El nombre del local que aparece en la factura se cambia editando la constante
-  `NOMBRE_LOCAL` al inicio de `public/receipt.js`.
-- La factura está pensada para papel de 80mm. Si tu impresora usa papel de 58mm, cambia
-  `80mm` por `58mm` en `public/receipt.css` (`.factura { width: ... }` y `@page { size: ... }`).
+- El nombre del local y el ancho del papel (58mm u 80mm) se configuran desde `settings.html`
+  (solo administrador) — no hace falta tocar ningún archivo.
 - Si el navegador bloquea la ventana emergente la primera vez, hay que permitir "ventanas
   emergentes" para esta página una sola vez.
+
+## Marca del local: logo, nombre e íconos de productos
+
+Desde `settings.html` (ícono ⚙️ "Configuración", solo administrador):
+
+- **Logo:** se sube una imagen (se ajusta sola de tamaño) y aparece en el encabezado de caja,
+  del kiosco de autopedido, y arriba en la factura impresa.
+- **Nombre del local:** reemplaza el texto genérico "Toma de Pedidos" / "Haz tu Pedido" en el
+  encabezado, y aparece en la factura.
+- **Tamaño de papel:** 58mm u 80mm — la factura se ajusta sola al elegido.
+
+Además, cada producto del menú puede tener su propia foto o ícono (botón "Foto" en
+**Administrar Menú**, tanto al crear un producto como en los ya existentes). Esa imagen
+aparece en los botones de caja y del kiosco, para que se reconozca el producto de un vistazo
+sin tener que leer el nombre — útil tanto para personal que no lee con facilidad como para
+que sea más rápido de usar en general. Un producto sin foto sigue funcionando igual que
+antes, solo con texto.
 
 ## Personalización de ingredientes
 

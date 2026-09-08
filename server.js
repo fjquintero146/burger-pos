@@ -18,7 +18,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 app.set('trust proxy', 1);
-app.use(express.json());
+app.use(express.json({ limit: '8mb' })); // más grande de lo normal: acepta imágenes en base64 (logo, íconos de menú)
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'cambia-esto-en-produccion-por-una-frase-larga-y-unica',
@@ -162,9 +162,36 @@ app.get('/kds.html', requirePage('cocina', 'administrador'), (req, res) => res.s
 app.get('/admin.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/sales.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'sales.html')));
 app.get('/users.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'users.html')));
+app.get('/settings.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'settings.html')));
 app.get('/receipt.html', requirePage('cajero', 'administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'receipt.html')));
 
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ---------- CONFIGURACIÓN GENERAL (logo, nombre del local, tamaño de factura) ----------
+
+app.get('/api/settings', ruta(async (req, res) => {
+  const result = await db.execute('SELECT key, value FROM settings');
+  const settings = {};
+  result.rows.forEach(row => { settings[row.key] = row.value; });
+  res.json(settings);
+}));
+
+app.put('/api/settings', requireApi('administrador'), ruta(async (req, res) => {
+  const permitido = ['restaurantName', 'logo', 'receiptWidth'];
+  for (const key of permitido) {
+    if (req.body[key] !== undefined) {
+      await db.execute({
+        sql: 'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+        args: [key, String(req.body[key])]
+      });
+    }
+  }
+  const result = await db.execute('SELECT key, value FROM settings');
+  const settings = {};
+  result.rows.forEach(row => { settings[row.key] = row.value; });
+  io.emit('settings-updated');
+  res.json(settings);
+}));
 
 // ---------- MENÚ (público: solo productos activos — lo usa también el kiosco de autopedido) ----------
 
@@ -183,13 +210,14 @@ app.get('/api/admin/menu', requireApi('administrador'), ruta(async (req, res) =>
 app.post('/api/admin/menu', requireApi('administrador'), ruta(async (req, res) => {
   const { category, name, price } = req.body;
   const ingredients = req.body.ingredients !== undefined ? String(req.body.ingredients).trim() : '';
+  const image = req.body.image !== undefined ? String(req.body.image).trim() : '';
   if (!category || !name || price === undefined || price === null || isNaN(price)) {
     return res.status(400).json({ error: 'Completa categoría, nombre y precio' });
   }
   const id = 'p' + Date.now().toString();
   await db.execute({
-    sql: 'INSERT INTO menu_items (id, category, name, price, active, ingredients) VALUES (?, ?, ?, ?, 1, ?)',
-    args: [id, category.trim(), name.trim(), Math.round(Number(price)), ingredients || null]
+    sql: 'INSERT INTO menu_items (id, category, name, price, active, ingredients, image) VALUES (?, ?, ?, ?, 1, ?, ?)',
+    args: [id, category.trim(), name.trim(), Math.round(Number(price)), ingredients || null, image || null]
   });
   const item = await db.execute({ sql: 'SELECT * FROM menu_items WHERE id = ?', args: [id] });
   io.emit('menu-updated');
@@ -208,14 +236,17 @@ app.put('/api/admin/menu/:id', requireApi('administrador'), ruta(async (req, res
   const ingredients = req.body.ingredients !== undefined
     ? (String(req.body.ingredients).trim() || null)
     : existing.ingredients;
+  const image = req.body.image !== undefined
+    ? (String(req.body.image).trim() || null)
+    : existing.image;
 
   if (!category || !name || isNaN(price)) {
     return res.status(400).json({ error: 'Datos inválidos' });
   }
 
   await db.execute({
-    sql: 'UPDATE menu_items SET category = ?, name = ?, price = ?, active = ?, ingredients = ? WHERE id = ?',
-    args: [category, name, price, active, ingredients, req.params.id]
+    sql: 'UPDATE menu_items SET category = ?, name = ?, price = ?, active = ?, ingredients = ?, image = ? WHERE id = ?',
+    args: [category, name, price, active, ingredients, image, req.params.id]
   });
 
   const updated = await db.execute({ sql: 'SELECT * FROM menu_items WHERE id = ?', args: [req.params.id] });
@@ -492,7 +523,7 @@ initDb()
       console.log(` Base de datos: ${usandoTurso ? 'Turso (remota)' : 'archivo local'}`);
       console.log('==========================================');
       console.log(`Iniciar sesión:      http://localhost:${PORT}/login.html`);
-      console.log(`Autopedido (mesas):  http://localhost:${PORT}/kiosk.html`);
+      console.log(`Autopedido:          http://localhost:${PORT}/kiosk.html`);
       ips.forEach(ip => {
         console.log(`Cocina (misma WiFi): http://${ip}:${PORT}/kds.html`);
       });

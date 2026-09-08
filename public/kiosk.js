@@ -68,7 +68,11 @@ function renderGrid() {
   menu.filter(p => p.category === categoriaActiva).forEach(producto => {
     const div = document.createElement('div');
     div.className = 'producto';
-    div.innerHTML = `<div class="nombre">${producto.name}</div><div class="precio">${formatoDinero(producto.price)}</div>`;
+    div.innerHTML = `
+      ${producto.image ? `<img class="producto-img" src="${producto.image}" alt="${producto.name}">` : ''}
+      <div class="nombre">${producto.name}</div>
+      <div class="precio">${formatoDinero(producto.price)}</div>
+    `;
     div.onclick = () => manejarClickProducto(producto);
     gridEl.appendChild(div);
   });
@@ -210,12 +214,27 @@ botonEnviar.onclick = enviarPedido;
 botonCancelar.onclick = () => { carrito = {}; renderCarrito(); };
 botonNuevoPedido.onclick = () => { modalConfirmacionFondo.classList.remove('visible'); };
 
+async function cargarMarca() {
+  const res = await fetch('/api/settings');
+  const settings = await res.json();
+  if (settings.logo) {
+    const logo = document.getElementById('logoHeader');
+    logo.src = settings.logo;
+    logo.style.display = 'block';
+  }
+  if (settings.restaurantName) {
+    document.getElementById('tituloHeader').textContent = settings.restaurantName;
+  }
+}
+
 cargarMenu();
 renderCarrito();
+cargarMarca();
 
-// Si el administrador cambia el menú mientras hay tablets de mesa activas,
+// Si el administrador cambia el menú mientras hay tablets activas,
 // se refresca solo (usa el mismo canal de tiempo real que caja y cocina).
 if (window.io) {
   const socket = io();
   socket.on('menu-updated', cargarMenu);
+  socket.on('settings-updated', cargarMarca);
 }

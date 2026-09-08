@@ -1,8 +1,8 @@
-const NOMBRE_LOCAL = 'Local de Hamburguesas'; // Cámbialo por el nombre real de tu negocio
-
 const params = new URLSearchParams(window.location.search);
 const orderId = params.get('id');
 const facturaEl = document.getElementById('factura');
+
+let settings = { restaurantName: 'Local de Hamburguesas', logo: '', receiptWidth: '80mm' };
 
 function formatoDinero(valor) {
   return '$' + Number(valor).toLocaleString('es-CO');
@@ -16,11 +16,40 @@ function formatoFecha(fechaISO) {
   });
 }
 
+function aplicarTamañoPapel() {
+  const ancho = settings.receiptWidth === '58mm' ? '58mm' : '80mm';
+  facturaEl.style.width = ancho;
+
+  let estiloImpresion = document.getElementById('estiloImpresionPapel');
+  if (!estiloImpresion) {
+    estiloImpresion = document.createElement('style');
+    estiloImpresion.id = 'estiloImpresionPapel';
+    document.head.appendChild(estiloImpresion);
+  }
+  estiloImpresion.textContent = `
+    @media print {
+      .factura { width: ${ancho} !important; }
+      @page { size: ${ancho} auto; margin: 0; }
+    }
+  `;
+}
+
+async function cargarConfiguracion() {
+  try {
+    const res = await fetch('/api/settings');
+    const data = await res.json();
+    settings = { ...settings, ...data };
+  } catch (e) { /* usa los valores por defecto */ }
+  aplicarTamañoPapel();
+}
+
 async function cargarFactura() {
   if (!orderId) {
     facturaEl.innerHTML = '<p class="cargando">Falta el número de pedido.</p>';
     return;
   }
+
+  await cargarConfiguracion();
 
   try {
     const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}`);
@@ -49,7 +78,8 @@ function renderFactura(pedido) {
 
   facturaEl.innerHTML = `
     <div class="f-centro">
-      <p class="f-titulo">${NOMBRE_LOCAL}</p>
+      ${settings.logo ? `<img src="${settings.logo}" class="f-logo" alt="Logo">` : ''}
+      <p class="f-titulo">${settings.restaurantName || 'Local de Hamburguesas'}</p>
       <p class="f-subtitulo">Pedido #${pedido.orderNumber}</p>
     </div>
     <div class="f-linea"></div>

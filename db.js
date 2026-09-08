@@ -72,6 +72,13 @@ async function initDb() {
     )
   `);
 
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    )
+  `);
+
   // Migración: agrega columnas nuevas a bases de datos creadas con una versión
   // anterior de la app, sin perder los datos que ya tengan.
   const columnasOrders = (await db.execute('PRAGMA table_info(orders)')).rows.map(c => c.name);
@@ -80,6 +87,11 @@ async function initDb() {
   }
   if (!columnasOrders.includes('source')) {
     await db.execute("ALTER TABLE orders ADD COLUMN source TEXT NOT NULL DEFAULT 'caja'");
+  }
+
+  const columnasMenu = (await db.execute('PRAGMA table_info(menu_items)')).rows.map(c => c.name);
+  if (!columnasMenu.includes('image')) {
+    await db.execute('ALTER TABLE menu_items ADD COLUMN image TEXT');
   }
 
   // Semilla inicial del menú, solo si la tabla está vacía
@@ -114,6 +126,19 @@ async function initDb() {
       sql: 'INSERT INTO counters (name, value) VALUES (?, ?)',
       args: ['order_number', 1]
     });
+  }
+
+  // Configuración general (logo, nombre del local, tamaño de papel de factura)
+  const defaultsSettings = {
+    restaurantName: 'Local de Hamburguesas',
+    logo: '',
+    receiptWidth: '80mm'
+  };
+  for (const [key, value] of Object.entries(defaultsSettings)) {
+    const existing = await db.execute({ sql: 'SELECT key FROM settings WHERE key = ?', args: [key] });
+    if (existing.rows.length === 0) {
+      await db.execute({ sql: 'INSERT INTO settings (key, value) VALUES (?, ?)', args: [key, value] });
+    }
   }
 
   // Si no hay ningún usuario todavía, crea un administrador inicial para
