@@ -74,15 +74,31 @@ function renderTabs() {
   });
 }
 
+function iconoGenerico(categoria) {
+  const cat = (categoria || '').toLowerCase();
+  if (cat.includes('hamburgu')) return '🍔';
+  if (cat.includes('bebida')) return '🥤';
+  if (cat.includes('postre') || cat.includes('dulce')) return '🍰';
+  if (cat.includes('extra') || cat.includes('papa') || cat.includes('acompañ')) return '🍟';
+  return '🍽️';
+}
+
 function renderGrid() {
   gridEl.innerHTML = '';
   menu.filter(p => p.category === categoriaActiva).forEach(producto => {
     const div = document.createElement('div');
     div.className = 'producto';
     div.innerHTML = `
-      ${producto.image ? `<img class="producto-img" src="${producto.image}" alt="${producto.name}">` : ''}
-      <div class="nombre">${producto.name}</div>
-      <div class="precio">${formatoDinero(producto.price)}</div>
+      <div class="producto-foto">
+        ${producto.image
+          ? `<img class="producto-img" src="${producto.image}" alt="${producto.name}">`
+          : `<div class="producto-img-generica">${iconoGenerico(producto.category)}</div>`}
+        <div class="producto-boton-mas">+</div>
+      </div>
+      <div class="producto-info">
+        <div class="nombre">${producto.name}</div>
+        <div class="precio">${formatoDinero(producto.price)}</div>
+      </div>
     `;
     div.onclick = () => manejarClickProducto(producto);
     gridEl.appendChild(div);
