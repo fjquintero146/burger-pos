@@ -152,6 +152,15 @@
   border-radius: 6px;
 }
 
+.fila-producto input.input-combo {
+  flex: 1.5;
+  min-width: 180px;
+  padding: 9px;
+  font-size: 14px;
+  border: 1px solid var(--gris-claro);
+  border-radius: 6px;
+}
+
 .campo-imagen {
   display: flex;
   align-items: center;

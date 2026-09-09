@@ -20,9 +20,21 @@ function tiempoTranscurrido(fechaISO) {
   return `hace ${minutos} min`;
 }
 
+function minutosTranscurridos(fechaISO) {
+  return Math.floor((Date.now() - new Date(fechaISO).getTime()) / 60000);
+}
+
+function claseUrgencia(pedido) {
+  if (pedido.status === 'listo') return '';
+  const minutos = minutosTranscurridos(pedido.createdAt);
+  if (minutos >= 12) return 'urgente';
+  if (minutos >= 6) return 'atencion';
+  return '';
+}
+
 function crearTarjeta(pedido) {
   const div = document.createElement('div');
-  div.className = `tarjeta ${pedido.status}`;
+  div.className = `tarjeta ${pedido.status} ${claseUrgencia(pedido)}`.trim();
   div.dataset.id = pedido.id;
 
   const itemsHtml = pedido.items
@@ -81,14 +93,34 @@ async function cargarPedidos() {
   const lista = await res.json();
   pedidos = {};
   lista
-    .filter(p => p.status !== 'entregado')
+    .filter(p => p.status !== 'entregado' && p.status !== 'esperando_pago')
     .forEach(p => { pedidos[p.id] = p; });
   renderTablero();
+}
+
+// Sonido corto para avisar que llegó un pedido nuevo, sin necesitar ningún
+// archivo de audio (se genera con el navegador).
+function sonarAlerta() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [880, 660].forEach((frecuencia, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = frecuencia;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.15);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.18);
+      osc.stop(ctx.currentTime + i * 0.18 + 0.16);
+    });
+  } catch (e) { /* si el navegador bloquea el sonido, no pasa nada grave */ }
 }
 
 socket.on('order-created', pedido => {
   pedidos[pedido.id] = pedido;
   renderTablero();
+  sonarAlerta();
 });
 
 socket.on('order-updated', pedido => {

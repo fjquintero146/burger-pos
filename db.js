@@ -23,7 +23,9 @@ async function initDb() {
       name TEXT NOT NULL,
       price INTEGER NOT NULL,
       active INTEGER NOT NULL DEFAULT 1,
-      ingredients TEXT
+      ingredients TEXT,
+      combo_items TEXT,
+      sold_out_date TEXT
     )
   `);
 
@@ -37,7 +39,10 @@ async function initDb() {
       customer_name TEXT,
       edited INTEGER NOT NULL DEFAULT 0,
       table_number TEXT,
-      source TEXT NOT NULL DEFAULT 'caja'
+      source TEXT NOT NULL DEFAULT 'caja',
+      payment_method TEXT,
+      discount_amount INTEGER NOT NULL DEFAULT 0,
+      discount_reason TEXT
     )
   `);
 
@@ -88,10 +93,25 @@ async function initDb() {
   if (!columnasOrders.includes('source')) {
     await db.execute("ALTER TABLE orders ADD COLUMN source TEXT NOT NULL DEFAULT 'caja'");
   }
+  if (!columnasOrders.includes('payment_method')) {
+    await db.execute('ALTER TABLE orders ADD COLUMN payment_method TEXT');
+  }
+  if (!columnasOrders.includes('discount_amount')) {
+    await db.execute('ALTER TABLE orders ADD COLUMN discount_amount INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!columnasOrders.includes('discount_reason')) {
+    await db.execute('ALTER TABLE orders ADD COLUMN discount_reason TEXT');
+  }
 
   const columnasMenu = (await db.execute('PRAGMA table_info(menu_items)')).rows.map(c => c.name);
   if (!columnasMenu.includes('image')) {
     await db.execute('ALTER TABLE menu_items ADD COLUMN image TEXT');
+  }
+  if (!columnasMenu.includes('combo_items')) {
+    await db.execute('ALTER TABLE menu_items ADD COLUMN combo_items TEXT');
+  }
+  if (!columnasMenu.includes('sold_out_date')) {
+    await db.execute('ALTER TABLE menu_items ADD COLUMN sold_out_date TEXT');
   }
 
   // Semilla inicial del menú, solo si la tabla está vacía
@@ -125,6 +145,16 @@ async function initDb() {
     await db.execute({
       sql: 'INSERT INTO counters (name, value) VALUES (?, ?)',
       args: ['order_number', 1]
+    });
+  }
+  const counterFecha = await db.execute({
+    sql: 'SELECT value FROM counters WHERE name = ?',
+    args: ['order_number_date']
+  });
+  if (counterFecha.rows.length === 0) {
+    await db.execute({
+      sql: 'INSERT INTO counters (name, value) VALUES (?, ?)',
+      args: ['order_number_date', new Date().toISOString().slice(0, 10)]
     });
   }
 
@@ -166,10 +196,31 @@ async function initDb() {
 }
 
 // Reserva y devuelve el siguiente número de pedido, de forma segura ante
-// dos cajas escribiendo al mismo tiempo.
+// dos cajas escribiendo al mismo tiempo. Se reinicia a 1 cada día.
 async function nextOrderNumber() {
+  const hoy = new Date().toISOString().slice(0, 10);
   const tx = await db.transaction('write');
   try {
+    const filaFecha = await tx.execute({
+      sql: 'SELECT value FROM counters WHERE name = ?',
+      args: ['order_number_date']
+    });
+    const fechaGuardada = filaFecha.rows[0] ? filaFecha.rows[0].value : null;
+
+    if (fechaGuardada !== hoy) {
+      // Es un día distinto al del último pedido: reinicia el contador.
+      await tx.execute({
+        sql: 'UPDATE counters SET value = ? WHERE name = ?',
+        args: [hoy, 'order_number_date']
+      });
+      await tx.execute({
+        sql: 'UPDATE counters SET value = ? WHERE name = ?',
+        args: [2, 'order_number']
+      });
+      await tx.commit();
+      return 1;
+    }
+
     const row = await tx.execute({
       sql: 'SELECT value FROM counters WHERE name = ?',
       args: ['order_number']

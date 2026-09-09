@@ -48,6 +48,25 @@
   border-radius: 8px;
 }
 
+.boton-agotados {
+  background: var(--rojo);
+  color: var(--blanco);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 8px;
+}
+
+.aviso-offline {
+  background: var(--carbon);
+  color: var(--mostaza);
+  font-weight: 800;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 2px solid var(--mostaza);
+}
+
 .badge-cobrar {
   position: absolute;
   top: -8px;
@@ -284,6 +303,39 @@
   font-weight: 700;
   min-width: 22px;
   text-align: center;
+}
+
+.boton-descuento {
+  width: 100%;
+  background: transparent;
+  color: var(--rojo-oscuro);
+  border: 2px dashed var(--gris-claro);
+  font-weight: 700;
+  font-size: 15px;
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.linea-descuento {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #e3f2da;
+  color: var(--lechuga);
+  font-weight: 700;
+  font-size: 15px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.boton-quitar-descuento {
+  background: transparent;
+  color: var(--rojo);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 4px 8px;
 }
 
 .total-linea {
@@ -542,6 +594,37 @@
   font-weight: 500;
   color: var(--rojo-oscuro);
   font-style: italic;
+}
+
+.combo-item {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gris);
+}
+
+.opciones-pago {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.opcion-pago {
+  flex: 1;
+  min-width: 100px;
+  padding: 16px 10px;
+  background: var(--gris-claro);
+  color: var(--carbon);
+  font-weight: 700;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 3px solid transparent;
+}
+
+.opcion-pago.activa,
+.opcion-pago:hover {
+  border-color: var(--mostaza);
 }
 
 /* ---- Pedidos activos (editar pedido ya enviado) ---- */

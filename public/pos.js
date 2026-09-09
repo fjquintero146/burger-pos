@@ -38,6 +38,30 @@ const modalCobrarFondo = document.getElementById('modalCobrarFondo');
 const listaPorCobrarEl = document.getElementById('listaPorCobrar');
 const botonCerrarPorCobrar = document.getElementById('botonCerrarPorCobrar');
 
+const botonAgotados = document.getElementById('botonAgotados');
+const modalAgotadosFondo = document.getElementById('modalAgotadosFondo');
+const listaAgotadosEl = document.getElementById('listaAgotados');
+const botonCerrarAgotados = document.getElementById('botonCerrarAgotados');
+
+const botonDescuento = document.getElementById('botonDescuento');
+const lineaDescuento = document.getElementById('lineaDescuento');
+const textoDescuento = document.getElementById('textoDescuento');
+const botonQuitarDescuento = document.getElementById('botonQuitarDescuento');
+const modalDescuentoFondo = document.getElementById('modalDescuentoFondo');
+const valorDescuentoEl = document.getElementById('valorDescuento');
+const motivoDescuentoEl = document.getElementById('motivoDescuento');
+const modalDescuentoCancelar = document.getElementById('modalDescuentoCancelar');
+const modalDescuentoConfirmar = document.getElementById('modalDescuentoConfirmar');
+
+const modalPagoFondo = document.getElementById('modalPagoFondo');
+const modalPagoCancelar = document.getElementById('modalPagoCancelar');
+
+const avisoOffline = document.getElementById('avisoOffline');
+const contadorPendientesEl = document.getElementById('contadorPendientes');
+
+let descuentoAplicado = null; // { amount, reason, tipo, valor }
+let tipoDescuentoSeleccionado = 'monto';
+
 function formatoDinero(valor) {
   return '$' + valor.toLocaleString('es-CO');
 }
@@ -97,6 +121,7 @@ function renderGrid() {
       </div>
       <div class="producto-info">
         <div class="nombre">${producto.name}</div>
+        ${producto.combo_items ? `<div class="combo-item">Incluye: ${producto.combo_items}</div>` : ''}
         <div class="precio">${formatoDinero(producto.price)}</div>
       </div>
     `;
@@ -109,7 +134,10 @@ function manejarClickProducto(producto) {
   if (producto.ingredients && producto.ingredients.trim() !== '') {
     abrirModal(producto);
   } else {
-    agregarAlCarrito(producto.id, { id: producto.id, name: producto.name, price: producto.price, note: '' });
+    agregarAlCarrito(producto.id, {
+      id: producto.id, name: producto.name, price: producto.price, note: '',
+      comboItems: producto.combo_items || ''
+    });
   }
 }
 
@@ -165,7 +193,8 @@ modalConfirmar.onclick = () => {
     id: productoEnModal.id,
     name: productoEnModal.name,
     price: productoEnModal.price,
-    note
+    note,
+    comboItems: productoEnModal.combo_items || ''
   });
 
   cerrarModal();
@@ -202,6 +231,7 @@ function renderCarrito() {
       linea.innerHTML = `
         <span class="nombre-item">
           ${item.name}
+          ${item.comboItems ? `<span class="combo-item">Incluye: ${item.comboItems}</span>` : ''}
           ${item.note ? `<span class="nota-item">${item.note}</span>` : ''}
         </span>
         <div class="cantidad-control">
@@ -217,14 +247,62 @@ function renderCarrito() {
     });
   }
 
-  const total = Object.values(carrito).reduce((sum, i) => sum + i.price * i.qty, 0);
+  const subtotal = Object.values(carrito).reduce((sum, i) => sum + i.price * i.qty, 0);
+
+  if (descuentoAplicado && descuentoAplicado.amount > subtotal) {
+    descuentoAplicado.amount = subtotal;
+  }
+
+  if (descuentoAplicado && descuentoAplicado.amount > 0) {
+    lineaDescuento.style.display = 'flex';
+    const etiquetaTipo = descuentoAplicado.tipo === 'porcentaje' ? `${descuentoAplicado.valor}%` : formatoDinero(descuentoAplicado.amount);
+    textoDescuento.textContent = `🏷️ Descuento (${etiquetaTipo}${descuentoAplicado.reason ? ' — ' + descuentoAplicado.reason : ''})`;
+  } else {
+    lineaDescuento.style.display = 'none';
+  }
+
+  const total = Math.max(0, subtotal - (descuentoAplicado ? descuentoAplicado.amount : 0));
   totalEl.textContent = formatoDinero(total);
   botonEnviar.disabled = claves.length === 0;
 }
 
+function limpiarDescuento() {
+  descuentoAplicado = null;
+  lineaDescuento.style.display = 'none';
+}
+
+// ---------- Modal de método de pago (reutilizable) ----------
+
+let callbackModalPago = null;
+
+function abrirModalPago(onElegido) {
+  callbackModalPago = onElegido;
+  modalPagoFondo.classList.add('visible');
+}
+
+document.querySelectorAll('#opcionesPago .opcion-pago').forEach(btn => {
+  btn.onclick = () => {
+    modalPagoFondo.classList.remove('visible');
+    const cb = callbackModalPago;
+    callbackModalPago = null;
+    if (cb) cb(btn.dataset.metodo);
+  };
+});
+
+modalPagoCancelar.onclick = () => {
+  modalPagoFondo.classList.remove('visible');
+  callbackModalPago = null;
+};
+modalPagoFondo.onclick = e => {
+  if (e.target === modalPagoFondo) {
+    modalPagoFondo.classList.remove('visible');
+    callbackModalPago = null;
+  }
+};
+
 // ---------- Enviar pedido / Guardar cambios ----------
 
-async function enviarPedido() {
+function enviarPedido() {
   const items = Object.values(carrito).map(i => ({
     productId: i.id,
     name: i.name,
@@ -234,8 +312,34 @@ async function enviarPedido() {
   }));
   if (!items.length) return;
 
+  const editando = !!pedidoEnEdicionId;
+
+  if (editando) {
+    // Al editar un pedido ya enviado, no se vuelve a pedir método de pago.
+    procederEnviarPedido(null);
+  } else {
+    abrirModalPago(metodo => procederEnviarPedido(metodo));
+  }
+}
+
+async function procederEnviarPedido(metodoPago) {
+  const items = Object.values(carrito).map(i => ({
+    productId: i.id,
+    name: i.name,
+    price: i.price,
+    qty: i.qty,
+    note: i.note || ''
+  }));
+
   const customerName = campoClienteEl.value.trim();
   const editando = !!pedidoEnEdicionId;
+  const payload = {
+    items,
+    customerName,
+    paymentMethod: metodoPago || undefined,
+    discountAmount: descuentoAplicado ? descuentoAplicado.amount : 0,
+    discountReason: descuentoAplicado ? descuentoAplicado.reason : undefined
+  };
 
   botonEnviar.disabled = true;
   botonEnviar.textContent = editando ? 'GUARDANDO...' : 'ENVIANDO...';
@@ -246,7 +350,7 @@ async function enviarPedido() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items, customerName })
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -266,9 +370,25 @@ async function enviarPedido() {
     salirModoEdicion();
     carrito = {};
     campoClienteEl.value = '';
+    limpiarDescuento();
     renderCarrito();
   } catch (e) {
-    mostrarToast(e.message || 'Error al enviar el pedido. Intenta de nuevo.');
+    if (e instanceof TypeError) {
+      // Fallo de red (no llegó respuesta del servidor): probablemente sin conexión.
+      if (!editando) {
+        guardarPedidoPendiente(payload);
+        mostrarToast('Sin conexión: el pedido se guardó y se enviará solo cuando vuelva internet');
+        salirModoEdicion();
+        carrito = {};
+        campoClienteEl.value = '';
+        limpiarDescuento();
+        renderCarrito();
+      } else {
+        mostrarToast('Sin conexión: no se pueden guardar cambios de un pedido editado sin internet.');
+      }
+    } else {
+      mostrarToast(e.message || 'Error al enviar el pedido. Intenta de nuevo.');
+    }
   } finally {
     botonEnviar.textContent = pedidoEnEdicionId ? 'GUARDAR CAMBIOS' : 'ENVIAR A COCINA';
   }
@@ -287,7 +407,56 @@ botonEnviar.onclick = enviarPedido;
 botonCancelar.onclick = () => {
   carrito = {};
   campoClienteEl.value = '';
+  limpiarDescuento();
   salirModoEdicion();
+  renderCarrito();
+};
+
+// ---------- Descuento ----------
+
+botonDescuento.onclick = () => {
+  valorDescuentoEl.value = descuentoAplicado ? descuentoAplicado.valor : '';
+  motivoDescuentoEl.value = descuentoAplicado ? descuentoAplicado.reason : '';
+  tipoDescuentoSeleccionado = descuentoAplicado ? descuentoAplicado.tipo : 'monto';
+  document.querySelectorAll('#tipoDescuento .opcion-pago').forEach(btn => {
+    btn.classList.toggle('activa', btn.dataset.tipo === tipoDescuentoSeleccionado);
+  });
+  modalDescuentoFondo.classList.add('visible');
+};
+
+document.querySelectorAll('#tipoDescuento .opcion-pago').forEach(btn => {
+  btn.onclick = () => {
+    tipoDescuentoSeleccionado = btn.dataset.tipo;
+    document.querySelectorAll('#tipoDescuento .opcion-pago').forEach(b => b.classList.toggle('activa', b === btn));
+  };
+});
+
+modalDescuentoCancelar.onclick = () => modalDescuentoFondo.classList.remove('visible');
+modalDescuentoFondo.onclick = e => { if (e.target === modalDescuentoFondo) modalDescuentoFondo.classList.remove('visible'); };
+
+modalDescuentoConfirmar.onclick = () => {
+  const valor = Number(valorDescuentoEl.value);
+  if (!valor || valor <= 0) {
+    mostrarToast('Ingresa un valor de descuento válido');
+    return;
+  }
+  const subtotal = Object.values(carrito).reduce((sum, i) => sum + i.price * i.qty, 0);
+  const amount = tipoDescuentoSeleccionado === 'porcentaje'
+    ? Math.round(subtotal * (valor / 100))
+    : Math.round(valor);
+
+  descuentoAplicado = {
+    amount: Math.min(amount, subtotal),
+    reason: motivoDescuentoEl.value.trim(),
+    tipo: tipoDescuentoSeleccionado,
+    valor
+  };
+  modalDescuentoFondo.classList.remove('visible');
+  renderCarrito();
+};
+
+botonQuitarDescuento.onclick = () => {
+  limpiarDescuento();
   renderCarrito();
 };
 
@@ -408,18 +577,24 @@ async function abrirPorCobrar() {
 }
 
 async function confirmarPago(pedido) {
-  try {
-    const res = await fetch(`/api/orders/${pedido.id}/confirmar-pago`, { method: 'PATCH' });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || 'No se pudo confirmar el pago');
+  abrirModalPago(async metodo => {
+    try {
+      const res = await fetch(`/api/orders/${pedido.id}/confirmar-pago`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentMethod: metodo })
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'No se pudo confirmar el pago');
+      }
+      mostrarToast(`Pago confirmado — Pedido #${pedido.orderNumber} pasó a cocina`);
+      window.open(`receipt.html?id=${pedido.id}`, '_blank', 'width=380,height=640');
+      abrirPorCobrar();
+    } catch (e) {
+      mostrarToast(e.message || 'Error al confirmar el pago');
     }
-    mostrarToast(`Pago confirmado — Pedido #${pedido.orderNumber} pasó a cocina`);
-    window.open(`receipt.html?id=${pedido.id}`, '_blank', 'width=380,height=640');
-    abrirPorCobrar();
-  } catch (e) {
-    mostrarToast(e.message || 'Error al confirmar el pago');
-  }
+  });
 }
 
 botonPorCobrar.onclick = abrirPorCobrar;
@@ -432,6 +607,130 @@ socket.on('kiosk-order-created', pedido => {
   actualizarBadgeCobrar();
 });
 socket.on('order-created', actualizarBadgeCobrar);
+
+// ---------- Agotados hoy ----------
+
+async function abrirAgotados() {
+  modalAgotadosFondo.classList.add('visible');
+  listaAgotadosEl.innerHTML = '<p class="sin-pedidos-activos">Cargando...</p>';
+
+  const res = await fetch('/api/menu/estado');
+  const items = await res.json();
+
+  if (!items.length) {
+    listaAgotadosEl.innerHTML = '<p class="sin-pedidos-activos">No hay productos en el menú</p>';
+    return;
+  }
+
+  listaAgotadosEl.innerHTML = '';
+  items.forEach(item => {
+    const fila = document.createElement('div');
+    fila.className = 'fila-pedido-activo';
+    fila.innerHTML = `
+      <div class="info-pedido">
+        <div class="numero-pedido">${item.name}</div>
+        <div class="detalle-pedido">${item.category}${item.soldOutToday ? ' · marcado como agotado hoy' : ''}</div>
+      </div>
+      <button class="${item.soldOutToday ? 'btn-cobrar' : 'btn-eliminar'}">
+        ${item.soldOutToday ? '✅ Marcar disponible' : '🚫 Marcar agotado'}
+      </button>
+    `;
+    fila.querySelector('button').onclick = async () => {
+      await fetch(`/api/menu/${item.id}/agotado-hoy`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ soldOut: !item.soldOutToday })
+      });
+      mostrarToast(`${item.name}: ${!item.soldOutToday ? 'marcado como agotado' : 'disponible de nuevo'}`);
+      abrirAgotados();
+      cargarMenu();
+    };
+    listaAgotadosEl.appendChild(fila);
+  });
+}
+
+botonAgotados.onclick = abrirAgotados;
+botonCerrarAgotados.onclick = () => modalAgotadosFondo.classList.remove('visible');
+modalAgotadosFondo.onclick = e => { if (e.target === modalAgotadosFondo) modalAgotadosFondo.classList.remove('visible'); };
+
+// ---------- Resiliencia sin conexión ----------
+// Si al enviar un pedido nuevo no hay conexión con el servidor, se guarda en
+// este equipo y se reintenta enviar solo cuando vuelva internet. Así no se
+// pierde el pedido aunque se caiga el WiFi o el servidor esté reiniciando.
+
+const CLAVE_COLA = 'burgerpos_pedidos_pendientes';
+
+function obtenerCola() {
+  try {
+    return JSON.parse(localStorage.getItem(CLAVE_COLA) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function guardarCola(cola) {
+  localStorage.setItem(CLAVE_COLA, JSON.stringify(cola));
+  actualizarAvisoOffline();
+}
+
+function guardarPedidoPendiente(payload) {
+  const cola = obtenerCola();
+  cola.push({ payload, guardadoEn: Date.now() });
+  guardarCola(cola);
+}
+
+function actualizarAvisoOffline() {
+  const cola = obtenerCola();
+  if (cola.length > 0) {
+    avisoOffline.style.display = 'flex';
+    contadorPendientesEl.textContent = `(${cola.length} pendiente${cola.length > 1 ? 's' : ''})`;
+  } else if (!navigator.onLine) {
+    avisoOffline.style.display = 'flex';
+    contadorPendientesEl.textContent = '';
+  } else {
+    avisoOffline.style.display = 'none';
+  }
+}
+
+async function intentarEnviarPendientes() {
+  const cola = obtenerCola();
+  if (!cola.length) return;
+
+  const restantes = [];
+  let enviados = 0;
+
+  for (const pendiente of cola) {
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pendiente.payload)
+      });
+      if (res.ok) {
+        enviados++;
+      } else {
+        // Error de validación (no de red): no tiene sentido reintentar igual.
+        enviados++;
+      }
+    } catch (e) {
+      // Sigue sin haber conexión: se mantiene en la cola para el próximo intento.
+      restantes.push(pendiente);
+    }
+  }
+
+  guardarCola(restantes);
+  if (enviados > 0) {
+    mostrarToast(`${enviados} pedido${enviados > 1 ? 's' : ''} pendiente${enviados > 1 ? 's' : ''} se enviaron a cocina`);
+    actualizarBadgeCobrar();
+  }
+}
+
+window.addEventListener('online', () => {
+  actualizarAvisoOffline();
+  intentarEnviarPendientes();
+});
+window.addEventListener('offline', actualizarAvisoOffline);
+setInterval(intentarEnviarPendientes, 20000);
 
 // ---------- Sesión ----------
 
@@ -472,3 +771,5 @@ actualizarBadgeCobrar();
 cargarMenu();
 renderCarrito();
 cargarMarca();
+actualizarAvisoOffline();
+intentarEnviarPendientes();

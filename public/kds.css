@@ -85,6 +85,27 @@ body { background: var(--carbon); }
 .tarjeta.preparando { border-left-color: var(--mostaza); }
 .tarjeta.listo { border-left-color: var(--lechuga); }
 
+.tarjeta.atencion {
+  background: #fff8e6;
+  border-left-width: 10px;
+}
+
+.tarjeta.urgente {
+  background: #fdecea;
+  border-left-width: 10px;
+  animation: parpadeoUrgente 1.4s ease-in-out infinite;
+}
+
+.tarjeta.urgente .tiempo {
+  color: var(--rojo);
+  font-weight: 800;
+}
+
+@keyframes parpadeoUrgente {
+  0%, 100% { box-shadow: 0 0 0 rgba(193, 39, 45, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(193, 39, 45, 0.35); }
+}
+
 .tarjeta .cabecera {
   display: flex;
   justify-content: space-between;

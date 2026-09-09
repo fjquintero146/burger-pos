@@ -94,10 +94,17 @@ function renderFactura(pedido) {
       <tbody>${filasItems}</tbody>
     </table>
     <div class="f-linea"></div>
+    ${pedido.discountAmount > 0 ? `
+      <div class="f-datos">
+        <p>Subtotal: ${formatoDinero(pedido.total + pedido.discountAmount)}</p>
+        <p>Descuento${pedido.discountReason ? ' (' + pedido.discountReason + ')' : ''}: -${formatoDinero(pedido.discountAmount)}</p>
+      </div>
+    ` : ''}
     <div class="f-total">
       <span>TOTAL</span>
       <span>${formatoDinero(pedido.total)}</span>
     </div>
+    ${pedido.paymentMethod ? `<p class="f-metodo-pago">Pago: ${pedido.paymentMethod}</p>` : ''}
     <div class="f-footer">
       <p>¡Gracias por su compra!</p>
     </div>

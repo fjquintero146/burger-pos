@@ -86,6 +86,7 @@ function renderGrid() {
       </div>
       <div class="producto-info">
         <div class="nombre">${producto.name}</div>
+        ${producto.combo_items ? `<div class="combo-item">Incluye: ${producto.combo_items}</div>` : ''}
         <div class="precio">${formatoDinero(producto.price)}</div>
       </div>
     `;

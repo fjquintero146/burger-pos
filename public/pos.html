@@ -12,6 +12,8 @@
 <header class="topbar">
   <h1><img id="logoHeader" class="logo-header" style="display:none;"> <span id="tituloHeader">🍔 Toma de Pedidos</span></h1>
   <div class="topbar-derecha">
+    <div class="aviso-offline" id="avisoOffline" style="display:none;">⚠️ Sin conexión <span id="contadorPendientes"></span></div>
+    <button class="boton-agotados" id="botonAgotados">🚫 Agotados</button>
     <button class="boton-cobrar" id="botonPorCobrar">💳 Por Cobrar <span class="badge-cobrar" id="badgeCobrar" style="display:none;">0</span></button>
     <button class="boton-pedidos-activos" id="botonPedidosActivos">📋 Pedidos Activos</button>
     <div class="ultimo-pedido" id="ultimoPedido"></div>
@@ -32,6 +34,13 @@
     <div class="items-carrito" id="itemsCarrito">
       <p class="vacio" id="mensajeVacio">Toca un producto para agregarlo</p>
     </div>
+
+    <div class="linea-descuento" id="lineaDescuento" style="display:none;">
+      <span id="textoDescuento"></span>
+      <button id="botonQuitarDescuento" class="boton-quitar-descuento">Quitar</button>
+    </div>
+    <button class="boton-descuento" id="botonDescuento">🏷️ Aplicar descuento</button>
+
     <div class="total-linea">
       <span>Total</span>
       <span id="total">$0</span>
@@ -75,10 +84,56 @@
 <div class="modal-fondo" id="modalCobrarFondo">
   <div class="modal-caja modal-caja-ancha">
     <h3>💳 Pedidos por Cobrar</h3>
-    <p class="modal-sub">Autopedidos de mesa esperando que se confirme el pago:</p>
+    <p class="modal-sub">Autopedidos esperando que se confirme el pago:</p>
     <div id="listaPorCobrar" class="lista-pedidos-activos"></div>
     <div class="modal-botones">
       <button id="botonCerrarPorCobrar" class="modal-btn-cancelar">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalPagoFondo">
+  <div class="modal-caja">
+    <h3>💳 ¿Cómo pagó?</h3>
+    <p class="modal-sub">Elige el método de pago para este pedido:</p>
+    <div class="opciones-pago" id="opcionesPago">
+      <button class="opcion-pago" data-metodo="Efectivo">💵 Efectivo</button>
+      <button class="opcion-pago" data-metodo="Tarjeta">💳 Tarjeta</button>
+      <button class="opcion-pago" data-metodo="Nequi">📱 Nequi</button>
+      <button class="opcion-pago" data-metodo="Daviplata">📱 Daviplata</button>
+      <button class="opcion-pago" data-metodo="Otro">🔖 Otro</button>
+    </div>
+    <div class="modal-botones">
+      <button id="modalPagoCancelar" class="modal-btn-cancelar">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalDescuentoFondo">
+  <div class="modal-caja">
+    <h3>🏷️ Aplicar descuento</h3>
+    <div class="opciones-pago" id="tipoDescuento">
+      <button class="opcion-pago activa" data-tipo="monto">Monto fijo ($)</button>
+      <button class="opcion-pago" data-tipo="porcentaje">Porcentaje (%)</button>
+    </div>
+    <label class="modal-nota-label" for="valorDescuento">Valor</label>
+    <input type="number" id="valorDescuento" class="modal-nota" placeholder="Ej: 2000" min="0">
+    <label class="modal-nota-label" for="motivoDescuento">Motivo (opcional)</label>
+    <input type="text" id="motivoDescuento" class="modal-nota" placeholder="Ej: cortesía, cliente frecuente...">
+    <div class="modal-botones">
+      <button id="modalDescuentoCancelar" class="modal-btn-cancelar">Cancelar</button>
+      <button id="modalDescuentoConfirmar" class="modal-btn-confirmar">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalAgotadosFondo">
+  <div class="modal-caja modal-caja-ancha">
+    <h3>🚫 Agotados de hoy</h3>
+    <p class="modal-sub">Marca lo que se acabó — vuelve a aparecer solo mañana:</p>
+    <div id="listaAgotados" class="lista-pedidos-activos"></div>
+    <div class="modal-botones">
+      <button id="botonCerrarAgotados" class="modal-btn-cancelar">Cerrar</button>
     </div>
   </div>
 </div>

@@ -49,6 +49,7 @@ function crearFila(producto) {
     <input type="text" class="input-nombre" value="${producto.name}">
     <input type="number" class="input-precio" value="${producto.price}" min="0" step="500">
     <input type="text" class="input-ingredientes" value="${producto.ingredients || ''}" placeholder="Ingredientes separados por coma">
+    <input type="text" class="input-combo" value="${producto.combo_items || ''}" placeholder="¿Es combo? Qué incluye">
     <span class="etiqueta-estado ${producto.active ? 'activo' : ''}">${producto.active ? 'Visible en caja' : 'Oculto'}</span>
     <button class="btn-guardar">Guardar</button>
     <button class="btn-toggle">${producto.active ? 'Ocultar' : 'Mostrar'}</button>
@@ -77,6 +78,7 @@ async function guardarProducto(producto, fila, obtenerImagen) {
   const name = fila.querySelector('.input-nombre').value.trim();
   const price = fila.querySelector('.input-precio').value;
   const ingredients = fila.querySelector('.input-ingredientes').value.trim();
+  const comboItems = fila.querySelector('.input-combo').value.trim();
   const image = obtenerImagen ? obtenerImagen() : undefined;
 
   if (!name || price === '' || isNaN(price)) {
@@ -87,7 +89,7 @@ async function guardarProducto(producto, fila, obtenerImagen) {
   const res = await fetch(`/api/admin/menu/${producto.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, price: Number(price), ingredients, image })
+    body: JSON.stringify({ name, price: Number(price), ingredients, comboItems, image })
   });
 
   if (res.ok) {
@@ -140,11 +142,12 @@ formNuevo.addEventListener('submit', async e => {
   const name = document.getElementById('nuevoNombre').value.trim();
   const price = document.getElementById('nuevoPrecio').value;
   const ingredients = document.getElementById('nuevosIngredientes').value.trim();
+  const comboItems = document.getElementById('nuevoCombo').value.trim();
 
   const res = await fetch('/api/admin/menu', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ category, name, price: Number(price), ingredients, image: imagenNueva })
+    body: JSON.stringify({ category, name, price: Number(price), ingredients, comboItems, image: imagenNueva })
   });
 
   if (res.ok) {

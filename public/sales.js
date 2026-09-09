@@ -29,6 +29,7 @@ async function cargarReporte() {
   renderResumen(datos);
   renderTablaDias(datos.porDia);
   renderTablaProductos(datos.porProducto);
+  renderTablaMetodoPago(datos.porMetodoPago || []);
 }
 
 function renderResumen(datos) {
@@ -76,6 +77,28 @@ function renderTablaProductos(porProducto) {
     tr.innerHTML = `
       <td>${fila.nombre}</td>
       <td>${fila.cantidad}</td>
+      <td>${formatoDinero(fila.ingresos)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderTablaMetodoPago(porMetodoPago) {
+  const tbody = document.querySelector('#tablaPorMetodoPago tbody');
+  const sinDatos = document.getElementById('sinDatosMetodoPago');
+  tbody.innerHTML = '';
+
+  if (!porMetodoPago.length) {
+    sinDatos.style.display = 'block';
+    return;
+  }
+  sinDatos.style.display = 'none';
+
+  porMetodoPago.forEach(fila => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${fila.metodo}</td>
+      <td>${fila.pedidos}</td>
       <td>${formatoDinero(fila.ingresos)}</td>
     `;
     tbody.appendChild(tr);

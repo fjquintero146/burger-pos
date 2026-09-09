@@ -54,6 +54,13 @@ body {
   margin-top: 8px;
 }
 
+.f-metodo-pago {
+  text-align: center;
+  font-size: 12px;
+  margin-top: 6px;
+  font-weight: 700;
+}
+
 .f-footer {
   text-align: center;
   font-size: 11px;

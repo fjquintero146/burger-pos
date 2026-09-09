@@ -193,11 +193,40 @@ app.put('/api/settings', requireApi('administrador'), ruta(async (req, res) => {
   res.json(settings);
 }));
 
-// ---------- MENÚ (público: solo productos activos — lo usa también el kiosco de autopedido) ----------
+// ---------- MENÚ (público: solo productos activos y no agotados hoy) ----------
 
 app.get('/api/menu', ruta(async (req, res) => {
-  const result = await db.execute('SELECT * FROM menu_items WHERE active = 1 ORDER BY category, name');
+  const hoy = new Date().toISOString().slice(0, 10);
+  const result = await db.execute({
+    sql: `SELECT * FROM menu_items
+          WHERE active = 1 AND (sold_out_date IS NULL OR sold_out_date != ?)
+          ORDER BY category, name`,
+    args: [hoy]
+  });
   res.json(result.rows);
+}));
+
+// ---------- MENÚ: marcar/quitar "agotado hoy" (caja y administrador) ----------
+
+app.get('/api/menu/estado', requireApi('cajero', 'cocina', 'administrador'), ruta(async (req, res) => {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const result = await db.execute('SELECT * FROM menu_items WHERE active = 1 ORDER BY category, name');
+  const items = result.rows.map(item => ({ ...item, soldOutToday: item.sold_out_date === hoy }));
+  res.json(items);
+}));
+
+app.patch('/api/menu/:id/agotado-hoy', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const existing = (await db.execute({ sql: 'SELECT * FROM menu_items WHERE id = ?', args: [req.params.id] })).rows[0];
+  if (!existing) return res.status(404).json({ error: 'Producto no encontrado' });
+
+  const marcarAgotado = req.body.soldOut !== undefined ? !!req.body.soldOut : existing.sold_out_date !== hoy;
+  await db.execute({
+    sql: 'UPDATE menu_items SET sold_out_date = ? WHERE id = ?',
+    args: [marcarAgotado ? hoy : null, req.params.id]
+  });
+  io.emit('menu-updated');
+  res.json({ id: req.params.id, soldOutToday: marcarAgotado });
 }));
 
 // ---------- MENÚ (administración: todos los productos) ----------
@@ -211,13 +240,14 @@ app.post('/api/admin/menu', requireApi('administrador'), ruta(async (req, res) =
   const { category, name, price } = req.body;
   const ingredients = req.body.ingredients !== undefined ? String(req.body.ingredients).trim() : '';
   const image = req.body.image !== undefined ? String(req.body.image).trim() : '';
+  const comboItems = req.body.comboItems !== undefined ? String(req.body.comboItems).trim() : '';
   if (!category || !name || price === undefined || price === null || isNaN(price)) {
     return res.status(400).json({ error: 'Completa categoría, nombre y precio' });
   }
   const id = 'p' + Date.now().toString();
   await db.execute({
-    sql: 'INSERT INTO menu_items (id, category, name, price, active, ingredients, image) VALUES (?, ?, ?, ?, 1, ?, ?)',
-    args: [id, category.trim(), name.trim(), Math.round(Number(price)), ingredients || null, image || null]
+    sql: 'INSERT INTO menu_items (id, category, name, price, active, ingredients, image, combo_items) VALUES (?, ?, ?, ?, 1, ?, ?, ?)',
+    args: [id, category.trim(), name.trim(), Math.round(Number(price)), ingredients || null, image || null, comboItems || null]
   });
   const item = await db.execute({ sql: 'SELECT * FROM menu_items WHERE id = ?', args: [id] });
   io.emit('menu-updated');
@@ -239,14 +269,17 @@ app.put('/api/admin/menu/:id', requireApi('administrador'), ruta(async (req, res
   const image = req.body.image !== undefined
     ? (String(req.body.image).trim() || null)
     : existing.image;
+  const comboItems = req.body.comboItems !== undefined
+    ? (String(req.body.comboItems).trim() || null)
+    : existing.combo_items;
 
   if (!category || !name || isNaN(price)) {
     return res.status(400).json({ error: 'Datos inválidos' });
   }
 
   await db.execute({
-    sql: 'UPDATE menu_items SET category = ?, name = ?, price = ?, active = ?, ingredients = ?, image = ? WHERE id = ?',
-    args: [category, name, price, active, ingredients, image, req.params.id]
+    sql: 'UPDATE menu_items SET category = ?, name = ?, price = ?, active = ?, ingredients = ?, image = ?, combo_items = ? WHERE id = ?',
+    args: [category, name, price, active, ingredients, image, comboItems, req.params.id]
   });
 
   const updated = await db.execute({ sql: 'SELECT * FROM menu_items WHERE id = ?', args: [req.params.id] });
@@ -292,6 +325,9 @@ async function cargarPedidoCompleto(orderId) {
     edited: !!order.edited,
     tableNumber: order.table_number,
     source: order.source,
+    paymentMethod: order.payment_method,
+    discountAmount: order.discount_amount || 0,
+    discountReason: order.discount_reason,
     items: itemsResult.rows
   };
 }
@@ -314,11 +350,18 @@ app.get('/api/orders/:id', requireApi('cajero', 'cocina', 'administrador'), ruta
 app.post('/api/orders', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
   const { items } = req.body;
   const customerName = req.body.customerName ? String(req.body.customerName).trim() : null;
+  const paymentMethod = req.body.paymentMethod ? String(req.body.paymentMethod).trim() : null;
+  const discountReason = req.body.discountReason ? String(req.body.discountReason).trim() : null;
+
   if (!items || !items.length) {
     return res.status(400).json({ error: 'El pedido está vacío' });
   }
 
-  const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  let discountAmount = Math.max(0, Math.round(Number(req.body.discountAmount) || 0));
+  if (discountAmount > subtotal) discountAmount = subtotal;
+  const total = subtotal - discountAmount;
+
   const id = Date.now().toString();
   const createdAt = new Date().toISOString();
   const orderNumber = await nextOrderNumber();
@@ -326,9 +369,10 @@ app.post('/api/orders', requireApi('cajero', 'administrador'), ruta(async (req, 
   const tx = await db.transaction('write');
   try {
     await tx.execute({
-      sql: `INSERT INTO orders (id, order_number, status, total, created_at, customer_name, edited, source)
-            VALUES (?, ?, ?, ?, ?, ?, 0, 'caja')`,
-      args: [id, orderNumber, 'pendiente', total, createdAt, customerName || null]
+      sql: `INSERT INTO orders
+            (id, order_number, status, total, created_at, customer_name, edited, source, payment_method, discount_amount, discount_reason)
+            VALUES (?, ?, ?, ?, ?, ?, 0, 'caja', ?, ?, ?)`,
+      args: [id, orderNumber, 'pendiente', total, createdAt, customerName || null, paymentMethod, discountAmount, discountReason]
     });
     for (const i of items) {
       await tx.execute({
@@ -397,7 +441,11 @@ app.patch('/api/orders/:id/confirmar-pago', requireApi('cajero', 'administrador'
     return res.status(400).json({ error: 'Este pedido no está esperando pago' });
   }
 
-  await db.execute({ sql: "UPDATE orders SET status = 'pendiente' WHERE id = ?", args: [req.params.id] });
+  const paymentMethod = req.body.paymentMethod ? String(req.body.paymentMethod).trim() : null;
+  await db.execute({
+    sql: "UPDATE orders SET status = 'pendiente', payment_method = ? WHERE id = ?",
+    args: [paymentMethod, req.params.id]
+  });
   const pedido = await cargarPedidoCompleto(req.params.id);
   io.emit('order-created', pedido);
   res.json(pedido);
@@ -494,13 +542,21 @@ app.get('/api/sales', requireApi('administrador'), ruta(async (req, res) => {
     args: [from, to]
   });
 
+  const porMetodoPagoResult = await db.execute({
+    sql: `SELECT COALESCE(payment_method, 'Sin especificar') AS metodo, COUNT(*) AS pedidos, SUM(total) AS ingresos
+          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status != 'esperando_pago'
+          GROUP BY metodo ORDER BY ingresos DESC`,
+    args: [from, to]
+  });
+
   res.json({
     from,
     to,
     pedidos: resumenResult.rows[0].pedidos,
     ingresos: resumenResult.rows[0].ingresos,
     porDia: porDiaResult.rows,
-    porProducto: porProductoResult.rows
+    porProducto: porProductoResult.rows,
+    porMetodoPago: porMetodoPagoResult.rows
   });
 }));
 
