@@ -57,6 +57,41 @@
   border-radius: 8px;
 }
 
+.boton-turno {
+  background: var(--gris-claro);
+  color: var(--carbon);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 8px;
+}
+
+.boton-turno.turno-abierto {
+  background: var(--lechuga);
+  color: var(--blanco);
+}
+
+.linea-resumen-turno {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 15px;
+  border-bottom: 1px solid var(--gris-claro);
+}
+
+.linea-resumen-total {
+  font-weight: 800;
+  font-size: 17px;
+  border-bottom: none;
+  border-top: 2px solid var(--carbon);
+  margin-top: 4px;
+  padding-top: 10px;
+}
+
+.resumen-cierre {
+  margin-bottom: 16px;
+}
+
 .aviso-offline {
   background: var(--carbon);
   color: var(--mostaza);

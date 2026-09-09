@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historial de Turnos</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="sales.css">
+<link rel="stylesheet" href="turnos.css">
+</head>
+<body>
+
+<header class="topbar-admin">
+  <h1>🧾 Historial de Turnos</h1>
+  <div>
+    <a class="link-volver" href="admin.html">🛠️ Menú</a>
+    <a class="link-volver" href="sales.html">📊 Ventas</a>
+    <a class="link-volver" href="pos.html">🧾 Caja</a>
+    <a class="link-volver" href="#" id="botonSalir">Cerrar sesión</a>
+  </div>
+</header>
+
+<main class="contenedor-ventas">
+
+  <section class="tarjeta-tabla">
+    <table class="tabla-ventas" id="tablaTurnos">
+      <thead>
+        <tr>
+          <th>Apertura</th>
+          <th>Abierto por</th>
+          <th>Base</th>
+          <th>Cerrado por</th>
+          <th>Esperado</th>
+          <th>Contado</th>
+          <th>Diferencia</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p class="sin-datos" id="sinTurnos" style="display:none;">Todavía no se ha cerrado ningún turno</p>
+  </section>
+
+</main>
+
+<script src="turnos.js"></script>
+</body>
+</html>

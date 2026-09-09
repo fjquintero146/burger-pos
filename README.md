@@ -36,7 +36,11 @@ puede desplegar en internet de forma gratuita (ver sección "Desplegar en intern
 - **Configuración:** el administrador sube el logo del negocio, el nombre que aparece en caja
   y factura, y elige el ancho de papel de la impresora (58mm o 80mm) desde `settings.html`.
 - **Reporte de Ventas:** total vendido, número de pedidos y productos más vendidos en
-  cualquier rango de fechas (solo cuenta pedidos ya pagados, no los que están esperando pago).
+  cualquier rango de fechas (solo cuenta pedidos ya pagados, no los que están esperando pago),
+  con desglose por método de pago.
+- **Arqueo de caja:** apertura de turno con base inicial, y cierre con conteo físico de
+  efectivo — el sistema calcula solo si sobra o falta dinero. Historial completo para el
+  administrador en `turnos.html`.
 - Todo se actualiza al instante entre la caja, la cocina y el menú (usa WebSockets).
 - Los datos se guardan en una base de datos real (SQLite/Turso), más segura ante cortes de
   luz, reinicios o cierres inesperados que un simple archivo de texto.
@@ -203,6 +207,23 @@ un archivo local — perfecto para seguir probando cambios sin tocar los datos d
 
 > Tip: en la tablet, se puede "Agregar a pantalla de inicio" desde el navegador para que
 > quede como si fuera una aplicación normal.
+
+## Arqueo de caja (apertura y cierre de turno)
+
+Antes de empezar a cobrar, el cajero abre turno declarando cuánto efectivo hay de base en la
+caja. Al terminar el turno, cuenta el efectivo físico y el sistema le dice si cuadra:
+
+1. En caja, tocar el botón **"🧾 Abrir Turno"** (arriba) y escribir la base inicial en efectivo.
+2. Durante el turno, cada venta en efectivo se va sumando automáticamente a lo que debería
+   haber en la caja (las ventas con tarjeta, Nequi, etc. no afectan el efectivo físico).
+3. Al terminar, tocar **"🧾 Turno abierto"** → **"Cerrar Turno"**. Ahí se ve el desglose de
+   ventas por método de pago y el efectivo esperado.
+4. Contar el efectivo real de la caja y escribirlo. El sistema calcula la diferencia
+   (sobrante o faltante) automáticamente.
+5. Solo puede haber **un turno abierto a la vez** — si alguien más intenta abrir otro, el
+   sistema se lo impide hasta que el turno actual se cierre.
+6. El administrador puede ver el historial completo de turnos cerrados (con quién los abrió,
+   quién los cerró, y la diferencia de cada uno) en **`turnos.html`** ("🧾 Turnos" en el menú).
 
 ## Impresora de facturas
 

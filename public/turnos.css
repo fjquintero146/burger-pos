@@ -1,0 +1,14 @@
+.dif-positiva { color: var(--lechuga); font-weight: 800; }
+.dif-negativa { color: var(--rojo); font-weight: 800; }
+.dif-exacta { color: var(--gris); font-weight: 700; }
+
+.estado-turno-abierto {
+  display: inline-block;
+  background: var(--lechuga);
+  color: var(--blanco);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 6px;
+}

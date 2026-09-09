@@ -163,6 +163,7 @@ app.get('/admin.html', requirePage('administrador'), (req, res) => res.sendFile(
 app.get('/sales.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'sales.html')));
 app.get('/users.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'users.html')));
 app.get('/settings.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'settings.html')));
+app.get('/turnos.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'turnos.html')));
 app.get('/receipt.html', requirePage('cajero', 'administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'receipt.html')));
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -305,6 +306,12 @@ app.delete('/api/admin/menu/:id', requireApi('administrador'), ruta(async (req, 
 
 // ---------- PEDIDOS ----------
 
+// Devuelve el id del turno de caja abierto en este momento, o null si no hay ninguno.
+async function obtenerTurnoAbiertoId() {
+  const result = await db.execute("SELECT id FROM shifts WHERE status = 'abierto' LIMIT 1");
+  return result.rows[0] ? result.rows[0].id : null;
+}
+
 async function cargarPedidoCompleto(orderId) {
   const orderResult = await db.execute({ sql: 'SELECT * FROM orders WHERE id = ?', args: [orderId] });
   const order = orderResult.rows[0];
@@ -365,14 +372,15 @@ app.post('/api/orders', requireApi('cajero', 'administrador'), ruta(async (req, 
   const id = Date.now().toString();
   const createdAt = new Date().toISOString();
   const orderNumber = await nextOrderNumber();
+  const shiftId = await obtenerTurnoAbiertoId();
 
   const tx = await db.transaction('write');
   try {
     await tx.execute({
       sql: `INSERT INTO orders
-            (id, order_number, status, total, created_at, customer_name, edited, source, payment_method, discount_amount, discount_reason)
-            VALUES (?, ?, ?, ?, ?, ?, 0, 'caja', ?, ?, ?)`,
-      args: [id, orderNumber, 'pendiente', total, createdAt, customerName || null, paymentMethod, discountAmount, discountReason]
+            (id, order_number, status, total, created_at, customer_name, edited, source, payment_method, discount_amount, discount_reason, shift_id)
+            VALUES (?, ?, ?, ?, ?, ?, 0, 'caja', ?, ?, ?, ?)`,
+      args: [id, orderNumber, 'pendiente', total, createdAt, customerName || null, paymentMethod, discountAmount, discountReason, shiftId]
     });
     for (const i of items) {
       await tx.execute({
@@ -442,9 +450,10 @@ app.patch('/api/orders/:id/confirmar-pago', requireApi('cajero', 'administrador'
   }
 
   const paymentMethod = req.body.paymentMethod ? String(req.body.paymentMethod).trim() : null;
+  const shiftId = await obtenerTurnoAbiertoId();
   await db.execute({
-    sql: "UPDATE orders SET status = 'pendiente', payment_method = ? WHERE id = ?",
-    args: [paymentMethod, req.params.id]
+    sql: "UPDATE orders SET status = 'pendiente', payment_method = ?, shift_id = ? WHERE id = ?",
+    args: [paymentMethod, shiftId, req.params.id]
   });
   const pedido = await cargarPedidoCompleto(req.params.id);
   io.emit('order-created', pedido);
@@ -558,6 +567,108 @@ app.get('/api/sales', requireApi('administrador'), ruta(async (req, res) => {
     porProducto: porProductoResult.rows,
     porMetodoPago: porMetodoPagoResult.rows
   });
+}));
+
+// ---------- ARQUEO DE CAJA (turnos) ----------
+
+async function cargarTurnoCompleto(id) {
+  const result = await db.execute({ sql: 'SELECT * FROM shifts WHERE id = ?', args: [id] });
+  const t = result.rows[0];
+  if (!t) return null;
+  return {
+    id: t.id,
+    openedBy: t.opened_by,
+    openedAt: t.opened_at,
+    openingCash: t.opening_cash,
+    status: t.status,
+    closedBy: t.closed_by,
+    closedAt: t.closed_at,
+    closingCashCounted: t.closing_cash_counted,
+    expectedCash: t.expected_cash,
+    difference: t.difference,
+    notes: t.notes
+  };
+}
+
+// Calcula lo que debería haber en efectivo y el desglose por método de pago
+// para un turno (abierto o ya cerrado), a partir de los pedidos vinculados a él.
+async function calcularResumenTurno(turno) {
+  const ventasResult = await db.execute({
+    sql: `SELECT COALESCE(payment_method, 'Sin especificar') AS metodo, COUNT(*) AS pedidos, SUM(total) AS ingresos
+          FROM orders WHERE shift_id = ? AND status != 'esperando_pago'
+          GROUP BY metodo ORDER BY ingresos DESC`,
+    args: [turno.id]
+  });
+
+  const ventasPorMetodo = ventasResult.rows;
+  const ventasEfectivo = ventasPorMetodo.find(v => v.metodo === 'Efectivo');
+  const totalEfectivoVendido = ventasEfectivo ? ventasEfectivo.ingresos : 0;
+  const totalVentas = ventasPorMetodo.reduce((sum, v) => sum + v.ingresos, 0);
+  const totalPedidos = ventasPorMetodo.reduce((sum, v) => sum + v.pedidos, 0);
+  const expectedCash = turno.openingCash + totalEfectivoVendido;
+
+  return { ventasPorMetodo, totalVentas, totalPedidos, totalEfectivoVendido, expectedCash };
+}
+
+app.get('/api/shifts/actual', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
+  const result = await db.execute("SELECT id FROM shifts WHERE status = 'abierto' LIMIT 1");
+  if (!result.rows[0]) return res.json({ turno: null });
+  const turno = await cargarTurnoCompleto(result.rows[0].id);
+  const resumen = await calcularResumenTurno(turno);
+  res.json({ turno, resumen });
+}));
+
+app.post('/api/shifts', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
+  const abierto = await db.execute("SELECT id FROM shifts WHERE status = 'abierto' LIMIT 1");
+  if (abierto.rows[0]) {
+    return res.status(400).json({ error: 'Ya hay un turno abierto. Ciérralo antes de abrir uno nuevo.' });
+  }
+  const openingCash = Math.max(0, Math.round(Number(req.body.openingCash) || 0));
+  const id = 't' + Date.now();
+  await db.execute({
+    sql: `INSERT INTO shifts (id, opened_by, opened_at, opening_cash, status) VALUES (?, ?, ?, ?, 'abierto')`,
+    args: [id, req.session.user.username, new Date().toISOString(), openingCash]
+  });
+  const turno = await cargarTurnoCompleto(id);
+  io.emit('turno-actualizado');
+  res.json(turno);
+}));
+
+app.post('/api/shifts/:id/cerrar', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
+  const turno = await cargarTurnoCompleto(req.params.id);
+  if (!turno) return res.status(404).json({ error: 'Turno no encontrado' });
+  if (turno.status !== 'abierto') return res.status(400).json({ error: 'Este turno ya está cerrado' });
+
+  const resumen = await calcularResumenTurno(turno);
+  const closingCashCounted = Math.max(0, Math.round(Number(req.body.closingCashCounted) || 0));
+  const difference = closingCashCounted - resumen.expectedCash;
+  const notes = req.body.notes ? String(req.body.notes).trim() : null;
+
+  await db.execute({
+    sql: `UPDATE shifts SET status = 'cerrado', closed_by = ?, closed_at = ?, closing_cash_counted = ?,
+          expected_cash = ?, difference = ?, notes = ? WHERE id = ?`,
+    args: [req.session.user.username, new Date().toISOString(), closingCashCounted, resumen.expectedCash, difference, notes, req.params.id]
+  });
+
+  const turnoFinal = await cargarTurnoCompleto(req.params.id);
+  io.emit('turno-actualizado');
+  res.json({ turno: turnoFinal, resumen });
+}));
+
+app.get('/api/shifts/:id/resumen', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
+  const turno = await cargarTurnoCompleto(req.params.id);
+  if (!turno) return res.status(404).json({ error: 'Turno no encontrado' });
+  const resumen = await calcularResumenTurno(turno);
+  res.json({ turno, resumen });
+}));
+
+app.get('/api/shifts', requireApi('administrador'), ruta(async (req, res) => {
+  const result = await db.execute('SELECT id FROM shifts ORDER BY opened_at DESC LIMIT 60');
+  const turnos = [];
+  for (const row of result.rows) {
+    turnos.push(await cargarTurnoCompleto(row.id));
+  }
+  res.json(turnos);
 }));
 
 const PORT = process.env.PORT || 3000;

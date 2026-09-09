@@ -13,6 +13,7 @@
   <h1><img id="logoHeader" class="logo-header" style="display:none;"> <span id="tituloHeader">🍔 Toma de Pedidos</span></h1>
   <div class="topbar-derecha">
     <div class="aviso-offline" id="avisoOffline" style="display:none;">⚠️ Sin conexión <span id="contadorPendientes"></span></div>
+    <button class="boton-turno" id="botonTurno">🧾 Turno</button>
     <button class="boton-agotados" id="botonAgotados">🚫 Agotados</button>
     <button class="boton-cobrar" id="botonPorCobrar">💳 Por Cobrar <span class="badge-cobrar" id="badgeCobrar" style="display:none;">0</span></button>
     <button class="boton-pedidos-activos" id="botonPedidosActivos">📋 Pedidos Activos</button>
@@ -138,7 +139,33 @@
   </div>
 </div>
 
+<div class="modal-fondo" id="modalTurnoFondo">
+  <div class="modal-caja">
+    <h3>🧾 Turno de caja</h3>
+    <div id="contenidoTurno"></div>
+    <div class="modal-botones">
+      <button id="botonCerrarModalTurno" class="modal-btn-cancelar">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalCerrarTurnoFondo">
+  <div class="modal-caja">
+    <h3>Cerrar turno</h3>
+    <div id="resumenCierreTurno" class="resumen-cierre"></div>
+    <label class="modal-nota-label" for="efectivoContado">Efectivo contado físicamente en caja</label>
+    <input type="number" id="efectivoContado" class="modal-nota" placeholder="Ej: 61500" min="0">
+    <label class="modal-nota-label" for="notasCierre">Notas (opcional)</label>
+    <input type="text" id="notasCierre" class="modal-nota" placeholder="Ej: faltaron $500, se dio vueltas de más...">
+    <div class="modal-botones">
+      <button id="modalCerrarTurnoCancelar" class="modal-btn-cancelar">Cancelar</button>
+      <button id="modalCerrarTurnoConfirmar" class="modal-btn-confirmar">Confirmar Cierre</button>
+    </div>
+  </div>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
+<script src="turno.js"></script>
 <script src="pos.js"></script>
 </body>
 </html>

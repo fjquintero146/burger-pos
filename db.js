@@ -42,7 +42,8 @@ async function initDb() {
       source TEXT NOT NULL DEFAULT 'caja',
       payment_method TEXT,
       discount_amount INTEGER NOT NULL DEFAULT 0,
-      discount_reason TEXT
+      discount_reason TEXT,
+      shift_id TEXT
     )
   `);
 
@@ -84,6 +85,22 @@ async function initDb() {
     )
   `);
 
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS shifts (
+      id TEXT PRIMARY KEY,
+      opened_by TEXT,
+      opened_at TEXT NOT NULL,
+      opening_cash INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'abierto',
+      closed_by TEXT,
+      closed_at TEXT,
+      closing_cash_counted INTEGER,
+      expected_cash INTEGER,
+      difference INTEGER,
+      notes TEXT
+    )
+  `);
+
   // Migración: agrega columnas nuevas a bases de datos creadas con una versión
   // anterior de la app, sin perder los datos que ya tengan.
   const columnasOrders = (await db.execute('PRAGMA table_info(orders)')).rows.map(c => c.name);
@@ -101,6 +118,9 @@ async function initDb() {
   }
   if (!columnasOrders.includes('discount_reason')) {
     await db.execute('ALTER TABLE orders ADD COLUMN discount_reason TEXT');
+  }
+  if (!columnasOrders.includes('shift_id')) {
+    await db.execute('ALTER TABLE orders ADD COLUMN shift_id TEXT');
   }
 
   const columnasMenu = (await db.execute('PRAGMA table_info(menu_items)')).rows.map(c => c.name);
