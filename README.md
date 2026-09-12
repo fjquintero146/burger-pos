@@ -18,9 +18,17 @@ puede desplegar en internet de forma gratuita (ver sección "Desplegar en intern
   mesa). Ese pedido queda
   **esperando pago** — no aparece en cocina hasta que caja confirme el pago desde el panel
   "💳 Por Cobrar".
+- **Tipo de pedido:** cada pedido se marca como 🍽️ Mesa, 🥡 Para Llevar, o 🛵 Domicilio —
+  visible en el KDS y en la factura.
+- **Pantalla pública de pedidos listos:** `listos.html`, pensada para un TV o tablet a la
+  vista de los clientes — muestra los números de pedido en cuanto cocina los marca "Listo",
+  y los quita solos cuando se entregan.
 - **Editar pedidos ya enviados:** con el botón "📋 Pedidos Activos" en caja, se puede volver a
   abrir cualquier pedido que ya esté en cocina (mientras no esté "Entregado") para agregar o
   quitar productos, por si el cliente cambia de opinión.
+- **Anular pedidos:** con motivo obligatorio, desde "Pedidos Activos" o "Por Cobrar". El
+  pedido no se borra, queda en el histórico marcado como anulado (con quién y por qué), deja
+  de contar como venta, y el administrador puede ver todas las anulaciones en el reporte.
 - **Factura:** al enviar un pedido, confirmar un pago, o guardar cambios, se abre sola una
   ventana con la factura lista para imprimir en tu impresora POS térmica.
 - **Cocina (KDS):** pantalla que muestra los pedidos en 3 columnas: Pendientes, En
@@ -37,10 +45,12 @@ puede desplegar en internet de forma gratuita (ver sección "Desplegar en intern
   y factura, y elige el ancho de papel de la impresora (58mm o 80mm) desde `settings.html`.
 - **Reporte de Ventas:** total vendido, número de pedidos y productos más vendidos en
   cualquier rango de fechas (solo cuenta pedidos ya pagados, no los que están esperando pago),
-  con desglose por método de pago.
+  con desglose por método de pago, por hora del día (para planear personal), por cajero, y
+  tiempo promedio de preparación de los pedidos.
 - **Arqueo de caja:** apertura de turno con base inicial, y cierre con conteo físico de
   efectivo — el sistema calcula solo si sobra o falta dinero. Historial completo para el
-  administrador en `turnos.html`.
+  administrador en `turnos.html`. Al cerrar, se puede enviar automáticamente un PDF del
+  cierre por correo para que alguien lo valide.
 - Todo se actualiza al instante entre la caja, la cocina y el menú (usa WebSockets).
 - Los datos se guardan en una base de datos real (SQLite/Turso), más segura ante cortes de
   luz, reinicios o cierres inesperados que un simple archivo de texto.
@@ -124,6 +134,20 @@ Si el cliente quiere agregar o quitar algo después de haber enviado el pedido:
 Un pedido que ya fue marcado como "Entregado" en cocina no se puede editar (para proteger
 el historial de ventas ya cerradas).
 
+## Anular un pedido
+
+Para cuando el cliente se arrepiente, se va sin pagar, o hay un error que no se soluciona
+editando: desde el panel **"📋 Pedidos Activos"** o **"💳 Por Cobrar"**, cada pedido tiene un
+botón **"Anular"**.
+
+- Pide un **motivo obligatorio** — no se puede anular sin explicar por qué.
+- El pedido **no se borra**: queda guardado con la marca "anulado", quién lo anuló y cuándo.
+- Desaparece de cocina al instante y **no cuenta como venta** en el reporte ni en el arqueo
+  de caja.
+- Un pedido ya anulado no se puede editar ni volver a anular.
+- El administrador puede ver todas las anulaciones (con motivo y responsable) en la sección
+  "Pedidos anulados" del reporte de ventas — útil para detectar patrones o abuso.
+
 ## Autopedido (sin login)
 
 Para las tablets que dejas disponibles en el local, para que el cliente arme su propio pedido:
@@ -141,6 +165,26 @@ Para las tablets que dejas disponibles en el local, para que el cliente arme su 
 Si quieres dejar una tablet con un nombre precargado (por ejemplo, un punto fijo de
 autopedido), puedes abrirla con `kiosk.html?nombre=NOMBRE` — aunque el cliente igual puede
 cambiarlo si lo necesita.
+
+## Tipo de pedido
+
+Tanto en caja como en el kiosco, antes de armar el pedido se elige el tipo:
+
+- 🍽️ **Mesa** — el cliente come en el local (esta es la opción por defecto en el kiosco).
+- 🥡 **Para Llevar** — se lo lleva (por defecto en caja).
+- 🛵 **Domicilio** — se envía a una dirección (solo disponible desde caja).
+
+El tipo se ve en cada tarjeta del KDS (con su ícono) y queda impreso en la factura.
+
+## Pantalla pública de pedidos listos
+
+Para que los clientes vean cuándo su pedido está listo sin tener que preguntar en el mostrador:
+
+1. Abre `listos.html` en una tablet o TV a la vista del público (no necesita iniciar sesión).
+   Desde caja, el ícono 📺 en la esquina abre esta pantalla en una pestaña nueva.
+2. En cuanto cocina marca un pedido como **"Listo"** en el KDS, el número aparece solo en
+   esta pantalla, con su tipo (mesa/para llevar/domicilio) y el nombre si lo tiene.
+3. Cuando se entrega el pedido (botón "Entregado" en el KDS), desaparece solo de la pantalla.
 
 ## Desplegar en internet (Northflank + Turso, gratis)
 
@@ -180,6 +224,9 @@ en GitHub (puede ser privado). El archivo `.gitignore` ya está configurado para
    - `ADMIN_PASSWORD` → la clave que quieres que tenga la cuenta `admin` la primera vez que
      arranque (opcional — si no la pones, se genera una al azar y queda en los logs de
      Northflank, cópiala de ahí)
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` → opcional, solo si
+     quieres que el cierre de caja se mande por correo (ver la sección "Enviar el cierre de
+     caja por correo" más abajo)
 4. En **Puertos/Networking**, asegúrate de exponer un puerto público (Northflank asigna el
    puerto automáticamente vía la variable `PORT`, que el servidor ya usa).
 5. Despliega. Northflank te da una URL pública (algo como
@@ -224,6 +271,48 @@ caja. Al terminar el turno, cuenta el efectivo físico y el sistema le dice si c
    sistema se lo impide hasta que el turno actual se cierre.
 6. El administrador puede ver el historial completo de turnos cerrados (con quién los abrió,
    quién los cerró, y la diferencia de cada uno) en **`turnos.html`** ("🧾 Turnos" en el menú).
+7. Al cerrar, si configuraste el correo de validación (ver siguiente sección), se genera un
+   PDF con el resumen del cierre y se envía automáticamente por correo.
+
+## Enviar el cierre de caja por correo (PDF)
+
+Cada vez que se cierra un turno, el sistema puede mandar automáticamente un PDF con el
+resumen (base, ventas por método de pago, efectivo esperado vs. contado, diferencia) a un
+correo para que alguien lo valide — el dueño, un contador, etc.
+
+### Paso 1: Elegir a dónde llega el correo
+
+En **Configuración** (`settings.html`, solo administrador) hay un campo "Correo destino"
+dentro de la sección "Correo del cierre de caja". Ahí escribes la dirección que debe
+recibir el PDF cada vez que se cierre un turno.
+
+### Paso 2: Configurar el envío de correos (variables de entorno)
+
+El servidor necesita saber con qué cuenta de correo enviar. La opción más simple y gratis es
+usar una cuenta de Gmail con una "contraseña de aplicación" (no tu contraseña normal):
+
+1. Entra a tu cuenta de Gmail → Gestionar tu cuenta de Google → Seguridad.
+2. Activa la verificación en dos pasos si no la tienes.
+3. Busca "Contraseñas de aplicaciones" y crea una nueva (elige "Otra" y ponle un nombre
+   como "Burger POS"). Te va a dar una contraseña de 16 letras — cópiala.
+4. Agrega estas variables de entorno (en tu `.env` para probar local, o en Northflank para
+   producción, igual que hiciste con `TURSO_DATABASE_URL`):
+
+   ```
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=tu-correo@gmail.com
+   SMTP_PASS=la-contraseña-de-aplicación-de-16-letras
+   SMTP_FROM=tu-correo@gmail.com
+   ```
+
+Si prefieres usar otro proveedor (Outlook, un correo corporativo, o un servicio como
+Brevo/Resend/SendGrid), funciona igual: solo cambia `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` y
+`SMTP_PASS` por los datos que te dé ese proveedor.
+
+**Si no configuras estas variables, el sistema sigue funcionando exactamente igual** — el
+cierre de turno nunca falla por un problema de correo; simplemente no se envía nada, y te lo
+avisa en la pantalla ("⚠️ no se pudo enviar el correo...").
 
 ## Impresora de facturas
 

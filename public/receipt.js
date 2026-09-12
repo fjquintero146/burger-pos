@@ -87,6 +87,7 @@ function renderFactura(pedido) {
       <p>Fecha: ${formatoFecha(pedido.createdAt)}</p>
       ${pedido.customerName ? `<p>Cliente: ${pedido.customerName}</p>` : ''}
       ${pedido.tableNumber ? `<p>Pedido a nombre de: ${pedido.tableNumber}</p>` : ''}
+      <p>Tipo: ${{ mesa: 'Para comer en el local', para_llevar: 'Para llevar', domicilio: 'Domicilio' }[pedido.orderType] || 'Para llevar'}</p>
     </div>
     <div class="f-linea"></div>
     <table class="f-items">

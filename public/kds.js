@@ -41,10 +41,12 @@ function crearTarjeta(pedido) {
     .map(i => `<li><span class="cant">${i.qty}x</span>${i.name}${i.notes ? `<span class="nota-kds">${i.notes}</span>` : ''}</li>`)
     .join('');
 
+  const iconosTipo = { mesa: '🍽️', para_llevar: '🥡', domicilio: '🛵' };
+
   div.innerHTML = `
     <div class="cabecera">
       <span class="numero">
-        Pedido #${pedido.orderNumber}
+        ${iconosTipo[pedido.orderType] || ''} Pedido #${pedido.orderNumber}
         ${pedido.edited ? '<span class="marca-editado">✎ Editado</span>' : ''}
         ${pedido.tableNumber ? `<span class="cliente-kds">${pedido.tableNumber}</span>` : ''}
         ${pedido.customerName ? `<span class="cliente-kds">${pedido.customerName}</span>` : ''}
@@ -129,6 +131,11 @@ socket.on('order-updated', pedido => {
   } else {
     pedidos[pedido.id] = pedido;
   }
+  renderTablero();
+});
+
+socket.on('order-voided', pedido => {
+  delete pedidos[pedido.id];
   renderTablero();
 });
 

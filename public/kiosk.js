@@ -13,6 +13,16 @@ const botonEnviar = document.getElementById('botonEnviar');
 const botonCancelar = document.getElementById('botonCancelar');
 const toastEl = document.getElementById('toast');
 const campoMesaEl = document.getElementById('campoMesa');
+const opcionesTipoPedidoEl = document.getElementById('opcionesTipoPedido');
+let tipoPedidoSeleccionado = 'mesa';
+
+opcionesTipoPedidoEl.querySelectorAll('.opcion-tipo').forEach(btn => {
+  btn.onclick = () => {
+    tipoPedidoSeleccionado = btn.dataset.tipo;
+    opcionesTipoPedidoEl.querySelectorAll('.opcion-tipo').forEach(b => b.classList.toggle('activa', b === btn));
+  };
+});
+opcionesTipoPedidoEl.querySelector('[data-tipo="mesa"]').classList.add('activa');
 
 const modalFondo = document.getElementById('modalFondo');
 const modalTitulo = document.getElementById('modalTitulo');
@@ -210,7 +220,7 @@ async function enviarPedido() {
     const res = await fetch('/api/kiosk/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items, tableNumber: mesa })
+      body: JSON.stringify({ items, tableNumber: mesa, orderType: tipoPedidoSeleccionado })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error del servidor');

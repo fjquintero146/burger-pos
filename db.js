@@ -43,7 +43,16 @@ async function initDb() {
       payment_method TEXT,
       discount_amount INTEGER NOT NULL DEFAULT 0,
       discount_reason TEXT,
-      shift_id TEXT
+      shift_id TEXT,
+      voided INTEGER NOT NULL DEFAULT 0,
+      void_reason TEXT,
+      voided_by TEXT,
+      voided_at TEXT,
+      created_by TEXT,
+      prep_started_at TEXT,
+      ready_at TEXT,
+      delivered_at TEXT,
+      order_type TEXT NOT NULL DEFAULT 'para_llevar'
     )
   `);
 
@@ -122,6 +131,33 @@ async function initDb() {
   if (!columnasOrders.includes('shift_id')) {
     await db.execute('ALTER TABLE orders ADD COLUMN shift_id TEXT');
   }
+  if (!columnasOrders.includes('voided')) {
+    await db.execute('ALTER TABLE orders ADD COLUMN voided INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!columnasOrders.includes('void_reason')) {
+    await db.execute('ALTER TABLE orders ADD COLUMN void_reason TEXT');
+  }
+  if (!columnasOrders.includes('voided_by')) {
+    await db.execute('ALTER TABLE orders ADD COLUMN voided_by TEXT');
+  }
+  if (!columnasOrders.includes('voided_at')) {
+    await db.execute('ALTER TABLE orders ADD COLUMN voided_at TEXT');
+  }
+  if (!columnasOrders.includes('created_by')) {
+    await db.execute('ALTER TABLE orders ADD COLUMN created_by TEXT');
+  }
+  if (!columnasOrders.includes('prep_started_at')) {
+    await db.execute('ALTER TABLE orders ADD COLUMN prep_started_at TEXT');
+  }
+  if (!columnasOrders.includes('ready_at')) {
+    await db.execute('ALTER TABLE orders ADD COLUMN ready_at TEXT');
+  }
+  if (!columnasOrders.includes('delivered_at')) {
+    await db.execute('ALTER TABLE orders ADD COLUMN delivered_at TEXT');
+  }
+  if (!columnasOrders.includes('order_type')) {
+    await db.execute("ALTER TABLE orders ADD COLUMN order_type TEXT NOT NULL DEFAULT 'para_llevar'");
+  }
 
   const columnasMenu = (await db.execute('PRAGMA table_info(menu_items)')).rows.map(c => c.name);
   if (!columnasMenu.includes('image')) {
@@ -182,7 +218,8 @@ async function initDb() {
   const defaultsSettings = {
     restaurantName: 'Local de Hamburguesas',
     logo: '',
-    receiptWidth: '80mm'
+    receiptWidth: '80mm',
+    closeEmailTo: ''
   };
   for (const [key, value] of Object.entries(defaultsSettings)) {
     const existing = await db.execute({ sql: 'SELECT key FROM settings WHERE key = ?', args: [key] });

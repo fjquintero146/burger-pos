@@ -19,6 +19,20 @@ const ultimoPedidoEl = document.getElementById('ultimoPedido');
 const toastEl = document.getElementById('toast');
 const tituloCarritoEl = document.getElementById('tituloCarrito');
 const campoClienteEl = document.getElementById('campoCliente');
+const opcionesTipoPedidoEl = document.getElementById('opcionesTipoPedido');
+let tipoPedidoSeleccionado = 'para_llevar';
+
+function seleccionarTipoPedido(tipo) {
+  tipoPedidoSeleccionado = tipo;
+  opcionesTipoPedidoEl.querySelectorAll('.opcion-tipo').forEach(btn => {
+    btn.classList.toggle('activa', btn.dataset.tipo === tipo);
+  });
+}
+
+opcionesTipoPedidoEl.querySelectorAll('.opcion-tipo').forEach(btn => {
+  btn.onclick = () => seleccionarTipoPedido(btn.dataset.tipo);
+});
+seleccionarTipoPedido('para_llevar');
 
 const modalFondo = document.getElementById('modalFondo');
 const modalTitulo = document.getElementById('modalTitulo');
@@ -55,6 +69,12 @@ const modalDescuentoConfirmar = document.getElementById('modalDescuentoConfirmar
 
 const modalPagoFondo = document.getElementById('modalPagoFondo');
 const modalPagoCancelar = document.getElementById('modalPagoCancelar');
+
+const modalAnularFondo = document.getElementById('modalAnularFondo');
+const anularSubtitulo = document.getElementById('anularSubtitulo');
+const motivoAnularEl = document.getElementById('motivoAnular');
+const modalAnularCancelar = document.getElementById('modalAnularCancelar');
+const modalAnularConfirmar = document.getElementById('modalAnularConfirmar');
 
 const avisoOffline = document.getElementById('avisoOffline');
 const contadorPendientesEl = document.getElementById('contadorPendientes');
@@ -338,7 +358,8 @@ async function procederEnviarPedido(metodoPago) {
     customerName,
     paymentMethod: metodoPago || undefined,
     discountAmount: descuentoAplicado ? descuentoAplicado.amount : 0,
-    discountReason: descuentoAplicado ? descuentoAplicado.reason : undefined
+    discountReason: descuentoAplicado ? descuentoAplicado.reason : undefined,
+    orderType: tipoPedidoSeleccionado
   };
 
   botonEnviar.disabled = true;
@@ -399,6 +420,7 @@ function salirModoEdicion() {
   pedidoEnEdicionNumero = null;
   tituloCarritoEl.textContent = 'Pedido Actual';
   botonEnviar.textContent = 'ENVIAR A COCINA';
+  seleccionarTipoPedido('para_llevar');
   const aviso = document.querySelector('.aviso-edicion');
   if (aviso) aviso.remove();
 }
@@ -489,9 +511,11 @@ async function abrirPedidosActivos() {
         </div>
         <div class="detalle-pedido">${resumenItems} · ${formatoDinero(pedido.total)}</div>
       </div>
-      <button>Editar</button>
+      <button class="btn-editar-activo">Editar</button>
+      <button class="btn-anular">Anular</button>
     `;
-    fila.querySelector('button').onclick = () => cargarPedidoParaEditar(pedido);
+    fila.querySelector('.btn-editar-activo').onclick = () => cargarPedidoParaEditar(pedido);
+    fila.querySelector('.btn-anular').onclick = () => anularPedido(pedido, abrirPedidosActivos);
     listaPedidosActivosEl.appendChild(fila);
   });
 }
@@ -514,6 +538,7 @@ function cargarPedidoParaEditar(pedido) {
   pedidoEnEdicionNumero = pedido.orderNumber;
   tituloCarritoEl.textContent = `Editando Pedido #${pedido.orderNumber}`;
   botonEnviar.textContent = 'GUARDAR CAMBIOS';
+  seleccionarTipoPedido(pedido.orderType || 'para_llevar');
 
   if (!document.querySelector('.aviso-edicion')) {
     const aviso = document.createElement('p');
@@ -570,8 +595,10 @@ async function abrirPorCobrar() {
         <div class="detalle-pedido">${resumenItems} · ${formatoDinero(pedido.total)}</div>
       </div>
       <button class="btn-cobrar">Confirmar Pago</button>
+      <button class="btn-anular">Anular</button>
     `;
-    fila.querySelector('button').onclick = () => confirmarPago(pedido);
+    fila.querySelector('.btn-cobrar').onclick = () => confirmarPago(pedido);
+    fila.querySelector('.btn-anular').onclick = () => anularPedido(pedido, abrirPorCobrar);
     listaPorCobrarEl.appendChild(fila);
   });
 }
@@ -596,6 +623,59 @@ async function confirmarPago(pedido) {
     }
   });
 }
+
+// ---------- Anular pedido ----------
+
+let pedidoParaAnular = null;
+let callbackTrasAnular = null;
+
+function anularPedido(pedido, alTerminar) {
+  pedidoParaAnular = pedido;
+  callbackTrasAnular = alTerminar;
+  anularSubtitulo.textContent = `Pedido #${pedido.orderNumber} — ${formatoDinero(pedido.total)}. Esta acción no se puede deshacer.`;
+  motivoAnularEl.value = '';
+  modalAnularFondo.classList.add('visible');
+}
+
+modalAnularCancelar.onclick = () => {
+  modalAnularFondo.classList.remove('visible');
+  pedidoParaAnular = null;
+};
+modalAnularFondo.onclick = e => {
+  if (e.target === modalAnularFondo) {
+    modalAnularFondo.classList.remove('visible');
+    pedidoParaAnular = null;
+  }
+};
+
+modalAnularConfirmar.onclick = async () => {
+  const reason = motivoAnularEl.value.trim();
+  if (!reason) {
+    mostrarToast('Escribe el motivo de la anulación');
+    return;
+  }
+  if (!pedidoParaAnular) return;
+
+  try {
+    const res = await fetch(`/api/orders/${pedidoParaAnular.id}/anular`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'No se pudo anular el pedido');
+    }
+    mostrarToast(`Pedido #${pedidoParaAnular.orderNumber} anulado`);
+    modalAnularFondo.classList.remove('visible');
+    if (callbackTrasAnular) callbackTrasAnular();
+    actualizarBadgeCobrar();
+  } catch (e) {
+    mostrarToast(e.message || 'Error al anular el pedido');
+  } finally {
+    pedidoParaAnular = null;
+  }
+};
 
 botonPorCobrar.onclick = abrirPorCobrar;
 botonCerrarPorCobrar.onclick = () => modalCobrarFondo.classList.remove('visible');

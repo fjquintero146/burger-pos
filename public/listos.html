@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pedidos Listos</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="listos.css">
+</head>
+<body>
+
+<header class="topbar-listos">
+  <h1><img id="logoHeader" class="logo-header" style="display:none;"> <span id="tituloHeader">Pedidos Listos</span></h1>
+  <div class="reloj-listos" id="reloj"></div>
+</header>
+
+<main class="tablero-listos" id="tableroListos">
+  <p class="sin-pedidos-listos" id="sinPedidosListos">Cuando un pedido esté listo, va a aparecer aquí 🍔</p>
+</main>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="listos.js"></script>
+</body>
+</html>

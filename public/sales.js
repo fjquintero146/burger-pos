@@ -28,8 +28,11 @@ async function cargarReporte() {
   const datos = await res.json();
   renderResumen(datos);
   renderTablaDias(datos.porDia);
+  renderTablaHora(datos.porHora || []);
   renderTablaProductos(datos.porProducto);
+  renderTablaCajero(datos.porCajero || []);
   renderTablaMetodoPago(datos.porMetodoPago || []);
+  renderTablaAnulados(datos.anulados || []);
 }
 
 function renderResumen(datos) {
@@ -37,6 +40,10 @@ function renderResumen(datos) {
   document.getElementById('resumenPedidos').textContent = datos.pedidos;
   const promedio = datos.pedidos > 0 ? datos.ingresos / datos.pedidos : 0;
   document.getElementById('resumenPromedio').textContent = formatoDinero(Math.round(promedio));
+
+  const minutos = datos.tiempoPromedioPreparacion;
+  document.getElementById('resumenTiempoPrep').textContent =
+    minutos === null || minutos === undefined ? '—' : `${Math.round(minutos)} min`;
 }
 
 function renderTablaDias(porDia) {
@@ -54,6 +61,28 @@ function renderTablaDias(porDia) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${formatoFechaLarga(fila.dia)}</td>
+      <td>${fila.pedidos}</td>
+      <td>${formatoDinero(fila.ingresos)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderTablaHora(porHora) {
+  const tbody = document.querySelector('#tablaPorHora tbody');
+  const sinDatos = document.getElementById('sinDatosHora');
+  tbody.innerHTML = '';
+
+  if (!porHora.length) {
+    sinDatos.style.display = 'block';
+    return;
+  }
+  sinDatos.style.display = 'none';
+
+  porHora.forEach(fila => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${fila.hora}:00 - ${fila.hora}:59</td>
       <td>${fila.pedidos}</td>
       <td>${formatoDinero(fila.ingresos)}</td>
     `;
@@ -83,6 +112,28 @@ function renderTablaProductos(porProducto) {
   });
 }
 
+function renderTablaCajero(porCajero) {
+  const tbody = document.querySelector('#tablaPorCajero tbody');
+  const sinDatos = document.getElementById('sinDatosCajero');
+  tbody.innerHTML = '';
+
+  if (!porCajero.length) {
+    sinDatos.style.display = 'block';
+    return;
+  }
+  sinDatos.style.display = 'none';
+
+  porCajero.forEach(fila => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${fila.cajero}</td>
+      <td>${fila.pedidos}</td>
+      <td>${formatoDinero(fila.ingresos)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
 function renderTablaMetodoPago(porMetodoPago) {
   const tbody = document.querySelector('#tablaPorMetodoPago tbody');
   const sinDatos = document.getElementById('sinDatosMetodoPago');
@@ -100,6 +151,29 @@ function renderTablaMetodoPago(porMetodoPago) {
       <td>${fila.metodo}</td>
       <td>${fila.pedidos}</td>
       <td>${formatoDinero(fila.ingresos)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderTablaAnulados(anulados) {
+  const tbody = document.querySelector('#tablaAnulados tbody');
+  const sinDatos = document.getElementById('sinDatosAnulados');
+  tbody.innerHTML = '';
+
+  if (!anulados.length) {
+    sinDatos.style.display = 'block';
+    return;
+  }
+  sinDatos.style.display = 'none';
+
+  anulados.forEach(fila => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>#${fila.orderNumber}</td>
+      <td>${formatoDinero(fila.total)}</td>
+      <td>${fila.voidReason || '—'}</td>
+      <td>${fila.voidedBy || '—'}</td>
     `;
     tbody.appendChild(tr);
   });

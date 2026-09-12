@@ -30,6 +30,11 @@
 
   <aside class="carrito">
     <h2 id="tituloCarrito">Pedido Actual</h2>
+    <div class="opciones-tipo-pedido" id="opcionesTipoPedido">
+      <button class="opcion-tipo" data-tipo="para_llevar">🥡 Para Llevar</button>
+      <button class="opcion-tipo" data-tipo="mesa">🍽️ Mesa</button>
+      <button class="opcion-tipo" data-tipo="domicilio">🛵 Domicilio</button>
+    </div>
     <label class="campo-cliente-label" for="campoCliente">Nombre de quien pide (opcional)</label>
     <input type="text" id="campoCliente" class="campo-cliente" placeholder="Ej: Carlos, mesa 4...">
     <div class="items-carrito" id="itemsCarrito">
@@ -55,6 +60,7 @@
 <div class="toast" id="toast"></div>
 <a class="link-admin" href="admin.html" title="Administrar menú" id="linkAdmin" style="display:none;">⚙️</a>
 <a class="link-ventas" href="sales.html" title="Ver ventas" id="linkVentas" style="display:none;">📊</a>
+<a class="link-listos" href="listos.html" target="_blank" title="Pantalla de pedidos listos (para un TV)">📺</a>
 <a class="link-salir" href="#" title="Cerrar sesión" id="botonSalir">🚪</a>
 
 <div class="modal-fondo" id="modalFondo">
@@ -160,6 +166,19 @@
     <div class="modal-botones">
       <button id="modalCerrarTurnoCancelar" class="modal-btn-cancelar">Cancelar</button>
       <button id="modalCerrarTurnoConfirmar" class="modal-btn-confirmar">Confirmar Cierre</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalAnularFondo">
+  <div class="modal-caja">
+    <h3>❌ Anular pedido</h3>
+    <p class="modal-sub" id="anularSubtitulo"></p>
+    <label class="modal-nota-label" for="motivoAnular">Motivo de la anulación (obligatorio)</label>
+    <input type="text" id="motivoAnular" class="modal-nota" placeholder="Ej: cliente se fue, error de cocina, cortesía...">
+    <div class="modal-botones">
+      <button id="modalAnularCancelar" class="modal-btn-cancelar">Cancelar</button>
+      <button id="modalAnularConfirmar" class="modal-btn-confirmar boton-confirmar-anular">Anular Pedido</button>
     </div>
   </div>
 </div>

@@ -98,6 +98,12 @@
   font-size: 19px;
 }
 
+.sub-tarjeta-ventas {
+  color: var(--gris);
+  margin: -8px 0 14px;
+  font-size: 14px;
+}
+
 .tabla-ventas {
   width: 100%;
   border-collapse: collapse;

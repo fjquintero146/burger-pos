@@ -129,7 +129,11 @@ modalCerrarTurnoConfirmar.onclick = async () => {
       ? `Sobran ${formatoDineroTurno(diferencia)}`
       : `Faltan ${formatoDineroTurno(Math.abs(diferencia))}`;
 
-  mostrarToast(`Turno cerrado — ${textoDiferencia}`);
+  const textoCorreo = data.correo && data.correo.enviado
+    ? ' — correo de cierre enviado ✉️'
+    : ` — ⚠️ no se pudo enviar el correo (${data.correo ? data.correo.motivo : 'error desconocido'})`;
+
+  mostrarToast(`Turno cerrado — ${textoDiferencia}${textoCorreo}`);
   modalCerrarTurnoFondo.classList.remove('visible');
   actualizarEstadoTurno();
 };

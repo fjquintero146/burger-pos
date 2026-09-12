@@ -12,6 +12,8 @@ const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const { Server } = require('socket.io');
 const { db, initDb, nextOrderNumber } = require('./db');
+const { generarPdfCierre } = require('./pdf-cierre');
+const { enviarCorreoConPdf } = require('./mailer');
 
 const app = express();
 const server = http.createServer(app);
@@ -34,6 +36,8 @@ app.use(session({
 // Northflank (y la mayoría de plataformas) usan esto para saber que el
 // servidor sigue vivo. Va antes del login a propósito: no requiere sesión.
 app.get('/health', (req, res) => res.status(200).send('ok'));
+
+const TIPOS_PEDIDO_VALIDOS = ['mesa', 'para_llevar', 'domicilio'];
 
 // Envuelve una ruta async para que los errores no tumben el servidor,
 // sino que respondan con un JSON de error legible.
@@ -178,7 +182,7 @@ app.get('/api/settings', ruta(async (req, res) => {
 }));
 
 app.put('/api/settings', requireApi('administrador'), ruta(async (req, res) => {
-  const permitido = ['restaurantName', 'logo', 'receiptWidth'];
+  const permitido = ['restaurantName', 'logo', 'receiptWidth', 'closeEmailTo'];
   for (const key of permitido) {
     if (req.body[key] !== undefined) {
       await db.execute({
@@ -335,6 +339,15 @@ async function cargarPedidoCompleto(orderId) {
     paymentMethod: order.payment_method,
     discountAmount: order.discount_amount || 0,
     discountReason: order.discount_reason,
+    voided: !!order.voided,
+    voidReason: order.void_reason,
+    voidedBy: order.voided_by,
+    voidedAt: order.voided_at,
+    createdBy: order.created_by,
+    prepStartedAt: order.prep_started_at,
+    readyAt: order.ready_at,
+    deliveredAt: order.delivered_at,
+    orderType: order.order_type,
     items: itemsResult.rows
   };
 }
@@ -359,6 +372,7 @@ app.post('/api/orders', requireApi('cajero', 'administrador'), ruta(async (req, 
   const customerName = req.body.customerName ? String(req.body.customerName).trim() : null;
   const paymentMethod = req.body.paymentMethod ? String(req.body.paymentMethod).trim() : null;
   const discountReason = req.body.discountReason ? String(req.body.discountReason).trim() : null;
+  const orderType = TIPOS_PEDIDO_VALIDOS.includes(req.body.orderType) ? req.body.orderType : 'para_llevar';
 
   if (!items || !items.length) {
     return res.status(400).json({ error: 'El pedido está vacío' });
@@ -378,9 +392,9 @@ app.post('/api/orders', requireApi('cajero', 'administrador'), ruta(async (req, 
   try {
     await tx.execute({
       sql: `INSERT INTO orders
-            (id, order_number, status, total, created_at, customer_name, edited, source, payment_method, discount_amount, discount_reason, shift_id)
-            VALUES (?, ?, ?, ?, ?, ?, 0, 'caja', ?, ?, ?, ?)`,
-      args: [id, orderNumber, 'pendiente', total, createdAt, customerName || null, paymentMethod, discountAmount, discountReason, shiftId]
+            (id, order_number, status, total, created_at, customer_name, edited, source, payment_method, discount_amount, discount_reason, shift_id, created_by, order_type)
+            VALUES (?, ?, ?, ?, ?, ?, 0, 'caja', ?, ?, ?, ?, ?, ?)`,
+      args: [id, orderNumber, 'pendiente', total, createdAt, customerName || null, paymentMethod, discountAmount, discountReason, shiftId, req.session.user.username, orderType]
     });
     for (const i of items) {
       await tx.execute({
@@ -410,6 +424,7 @@ app.post('/api/kiosk/orders', ruta(async (req, res) => {
   if (!items || !items.length) {
     return res.status(400).json({ error: 'El pedido está vacío' });
   }
+  const orderType = TIPOS_PEDIDO_VALIDOS.includes(req.body.orderType) ? req.body.orderType : 'mesa';
 
   const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
   const id = Date.now().toString();
@@ -419,9 +434,9 @@ app.post('/api/kiosk/orders', ruta(async (req, res) => {
   const tx = await db.transaction('write');
   try {
     await tx.execute({
-      sql: `INSERT INTO orders (id, order_number, status, total, created_at, table_number, edited, source)
-            VALUES (?, ?, 'esperando_pago', ?, ?, ?, 0, 'autopedido')`,
-      args: [id, orderNumber, total, createdAt, String(tableNumber).trim()]
+      sql: `INSERT INTO orders (id, order_number, status, total, created_at, table_number, edited, source, created_by, order_type)
+            VALUES (?, ?, 'esperando_pago', ?, ?, ?, 0, 'autopedido', 'Autopedido', ?)`,
+      args: [id, orderNumber, total, createdAt, String(tableNumber).trim(), orderType]
     });
     for (const i of items) {
       await tx.execute({
@@ -462,7 +477,7 @@ app.patch('/api/orders/:id/confirmar-pago', requireApi('cajero', 'administrador'
 
 // Edita un pedido que ya fue enviado a cocina: reemplaza sus productos
 // (el cliente agregó o quitó algo) y opcionalmente el nombre del cliente.
-// No se puede editar un pedido que ya fue marcado como "entregado".
+// No se puede editar un pedido que ya fue marcado como "entregado" ni uno anulado.
 app.put('/api/orders/:id', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
   const existingResult = await db.execute({ sql: 'SELECT * FROM orders WHERE id = ?', args: [req.params.id] });
   const existing = existingResult.rows[0];
@@ -470,11 +485,15 @@ app.put('/api/orders/:id', requireApi('cajero', 'administrador'), ruta(async (re
   if (existing.status === 'entregado') {
     return res.status(400).json({ error: 'Este pedido ya fue entregado y no se puede editar' });
   }
+  if (existing.voided) {
+    return res.status(400).json({ error: 'Este pedido fue anulado y no se puede editar' });
+  }
 
   const { items } = req.body;
   const customerName = req.body.customerName !== undefined
     ? (String(req.body.customerName).trim() || null)
     : existing.customer_name;
+  const orderType = TIPOS_PEDIDO_VALIDOS.includes(req.body.orderType) ? req.body.orderType : existing.order_type;
 
   if (!items || !items.length) {
     return res.status(400).json({ error: 'El pedido no puede quedar vacío' });
@@ -492,8 +511,8 @@ app.put('/api/orders/:id', requireApi('cajero', 'administrador'), ruta(async (re
       });
     }
     await tx.execute({
-      sql: 'UPDATE orders SET total = ?, customer_name = ?, edited = 1 WHERE id = ?',
-      args: [total, customerName, req.params.id]
+      sql: 'UPDATE orders SET total = ?, customer_name = ?, edited = 1, order_type = ? WHERE id = ?',
+      args: [total, customerName, orderType, req.params.id]
     });
     await tx.commit();
   } catch (e) {
@@ -506,21 +525,66 @@ app.put('/api/orders/:id', requireApi('cajero', 'administrador'), ruta(async (re
   res.json(pedido);
 }));
 
+// Anula un pedido con un motivo obligatorio. El pedido NO se borra: queda en
+// el histórico marcado como "anulado", visible en el reporte de anulaciones,
+// y deja de contar como venta (no aparece en cocina ni en el reporte de ventas).
+app.patch('/api/orders/:id/anular', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
+  const existing = (await db.execute({ sql: 'SELECT * FROM orders WHERE id = ?', args: [req.params.id] })).rows[0];
+  if (!existing) return res.status(404).json({ error: 'Pedido no encontrado' });
+  if (existing.voided) {
+    return res.status(400).json({ error: 'Este pedido ya estaba anulado' });
+  }
+
+  const reason = req.body.reason ? String(req.body.reason).trim() : '';
+  if (!reason) {
+    return res.status(400).json({ error: 'Debes indicar el motivo de la anulación' });
+  }
+
+  await db.execute({
+    sql: `UPDATE orders SET status = 'anulado', voided = 1, void_reason = ?, voided_by = ?, voided_at = ? WHERE id = ?`,
+    args: [reason, req.session.user.username, new Date().toISOString(), req.params.id]
+  });
+
+  const pedido = await cargarPedidoCompleto(req.params.id);
+  io.emit('order-voided', pedido);
+  res.json(pedido);
+}));
+
 app.patch('/api/orders/:id/status', requireApi('cajero', 'cocina', 'administrador'), ruta(async (req, res) => {
   const { status } = req.body;
   const validStatuses = ['pendiente', 'preparando', 'listo', 'entregado'];
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ error: 'Estado inválido' });
   }
+  const existing = (await db.execute({ sql: 'SELECT voided FROM orders WHERE id = ?', args: [req.params.id] })).rows[0];
+  if (existing && existing.voided) {
+    return res.status(400).json({ error: 'Este pedido fue anulado' });
+  }
+
+  const ahora = new Date().toISOString();
+  const columnaTiempo = { preparando: 'prep_started_at', listo: 'ready_at', entregado: 'delivered_at' }[status];
+
   const info = await db.execute({
-    sql: 'UPDATE orders SET status = ? WHERE id = ?',
-    args: [status, req.params.id]
+    sql: columnaTiempo
+      ? `UPDATE orders SET status = ?, ${columnaTiempo} = COALESCE(${columnaTiempo}, ?) WHERE id = ?`
+      : 'UPDATE orders SET status = ? WHERE id = ?',
+    args: columnaTiempo ? [status, ahora, req.params.id] : [status, req.params.id]
   });
   if (info.rowsAffected === 0) return res.status(404).json({ error: 'Pedido no encontrado' });
 
   const pedido = await cargarPedidoCompleto(req.params.id);
   io.emit('order-updated', pedido);
   res.json(pedido);
+}));
+
+// ---------- PANTALLA PÚBLICA "PEDIDO LISTO" (sin login, para un TV en el local) ----------
+
+app.get('/api/pedidos-listos', ruta(async (req, res) => {
+  const result = await db.execute(
+    "SELECT order_number AS orderNumber, customer_name AS customerName, table_number AS tableNumber, order_type AS orderType, ready_at AS readyAt " +
+    "FROM orders WHERE status = 'listo' ORDER BY ready_at ASC"
+  );
+  res.json(result.rows);
 }));
 
 // ---------- VENTAS (reporte por rango de fechas) ----------
@@ -532,13 +596,13 @@ app.get('/api/sales', requireApi('administrador'), ruta(async (req, res) => {
 
   const resumenResult = await db.execute({
     sql: `SELECT COUNT(*) AS pedidos, COALESCE(SUM(total), 0) AS ingresos
-          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status != 'esperando_pago'`,
+          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')`,
     args: [from, to]
   });
 
   const porDiaResult = await db.execute({
     sql: `SELECT date(created_at) AS dia, COUNT(*) AS pedidos, SUM(total) AS ingresos
-          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status != 'esperando_pago'
+          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
           GROUP BY dia ORDER BY dia`,
     args: [from, to]
   });
@@ -546,15 +610,44 @@ app.get('/api/sales', requireApi('administrador'), ruta(async (req, res) => {
   const porProductoResult = await db.execute({
     sql: `SELECT oi.name AS nombre, SUM(oi.qty) AS cantidad, SUM(oi.price * oi.qty) AS ingresos
           FROM order_items oi JOIN orders o ON o.id = oi.order_id
-          WHERE date(o.created_at) BETWEEN date(?) AND date(?) AND o.status != 'esperando_pago'
+          WHERE date(o.created_at) BETWEEN date(?) AND date(?) AND o.status NOT IN ('esperando_pago', 'anulado')
           GROUP BY oi.name ORDER BY ingresos DESC`,
     args: [from, to]
   });
 
   const porMetodoPagoResult = await db.execute({
     sql: `SELECT COALESCE(payment_method, 'Sin especificar') AS metodo, COUNT(*) AS pedidos, SUM(total) AS ingresos
-          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status != 'esperando_pago'
+          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
           GROUP BY metodo ORDER BY ingresos DESC`,
+    args: [from, to]
+  });
+
+  const anuladosResult = await db.execute({
+    sql: `SELECT order_number AS orderNumber, total, void_reason AS voidReason, voided_by AS voidedBy, voided_at AS voidedAt
+          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND voided = 1
+          ORDER BY voided_at DESC`,
+    args: [from, to]
+  });
+
+  // Hora pico de ventas (ajustado a hora de Colombia, UTC-5) — útil para planear personal.
+  const porHoraResult = await db.execute({
+    sql: `SELECT strftime('%H', created_at, '-5 hours') AS hora, COUNT(*) AS pedidos, SUM(total) AS ingresos
+          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
+          GROUP BY hora ORDER BY hora`,
+    args: [from, to]
+  });
+
+  const porCajeroResult = await db.execute({
+    sql: `SELECT COALESCE(created_by, 'Sin especificar') AS cajero, COUNT(*) AS pedidos, SUM(total) AS ingresos
+          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
+          GROUP BY cajero ORDER BY ingresos DESC`,
+    args: [from, to]
+  });
+
+  const tiempoPrepResult = await db.execute({
+    sql: `SELECT AVG((julianday(ready_at) - julianday(created_at)) * 24 * 60) AS minutos
+          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?)
+          AND ready_at IS NOT NULL AND status NOT IN ('esperando_pago', 'anulado')`,
     args: [from, to]
   });
 
@@ -565,7 +658,11 @@ app.get('/api/sales', requireApi('administrador'), ruta(async (req, res) => {
     ingresos: resumenResult.rows[0].ingresos,
     porDia: porDiaResult.rows,
     porProducto: porProductoResult.rows,
-    porMetodoPago: porMetodoPagoResult.rows
+    porMetodoPago: porMetodoPagoResult.rows,
+    anulados: anuladosResult.rows,
+    porHora: porHoraResult.rows,
+    porCajero: porCajeroResult.rows,
+    tiempoPromedioPreparacion: tiempoPrepResult.rows[0].minutos
   });
 }));
 
@@ -595,7 +692,7 @@ async function cargarTurnoCompleto(id) {
 async function calcularResumenTurno(turno) {
   const ventasResult = await db.execute({
     sql: `SELECT COALESCE(payment_method, 'Sin especificar') AS metodo, COUNT(*) AS pedidos, SUM(total) AS ingresos
-          FROM orders WHERE shift_id = ? AND status != 'esperando_pago'
+          FROM orders WHERE shift_id = ? AND status NOT IN ('esperando_pago', 'anulado')
           GROUP BY metodo ORDER BY ingresos DESC`,
     args: [turno.id]
   });
@@ -652,7 +749,34 @@ app.post('/api/shifts/:id/cerrar', requireApi('cajero', 'administrador'), ruta(a
 
   const turnoFinal = await cargarTurnoCompleto(req.params.id);
   io.emit('turno-actualizado');
-  res.json({ turno: turnoFinal, resumen });
+
+  // Genera el PDF del cierre y lo envía por correo para validación, si está
+  // configurado. Un problema de correo NUNCA debe hacer fallar el cierre del
+  // turno — ya quedó cerrado en la base de datos pase lo que pase con el mail.
+  let correo = { enviado: false, motivo: 'No se intentó enviar' };
+  try {
+    const settingsResult = await db.execute('SELECT key, value FROM settings');
+    const settings = {};
+    settingsResult.rows.forEach(row => { settings[row.key] = row.value; });
+
+    const pdfBuffer = await generarPdfCierre(turnoFinal, resumen, settings.restaurantName);
+    const fechaArchivo = new Date().toISOString().slice(0, 10);
+    correo = await enviarCorreoConPdf({
+      to: settings.closeEmailTo,
+      subject: `Cierre de caja ${fechaArchivo} — ${settings.restaurantName || 'Local de Hamburguesas'}`,
+      text: `Adjunto el cierre de caja del turno cerrado por ${turnoFinal.closedBy} el ${fechaArchivo}.\n\n` +
+            `Efectivo esperado: $${resumen.expectedCash.toLocaleString('es-CO')}\n` +
+            `Efectivo contado: $${turnoFinal.closingCashCounted.toLocaleString('es-CO')}\n` +
+            `Diferencia: $${turnoFinal.difference.toLocaleString('es-CO')}`,
+      pdfBuffer,
+      pdfNombre: `cierre-caja-${fechaArchivo}.pdf`
+    });
+  } catch (err) {
+    console.error('No se pudo generar/enviar el PDF de cierre:', err);
+    correo = { enviado: false, motivo: 'Error generando el PDF' };
+  }
+
+  res.json({ turno: turnoFinal, resumen, correo });
 }));
 
 app.get('/api/shifts/:id/resumen', requireApi('cajero', 'administrador'), ruta(async (req, res) => {

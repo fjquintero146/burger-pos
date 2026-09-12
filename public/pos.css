@@ -259,6 +259,28 @@
   font-size: 24px;
 }
 
+.opciones-tipo-pedido {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.opcion-tipo {
+  flex: 1;
+  padding: 10px 4px;
+  background: var(--gris-claro);
+  color: var(--carbon);
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: 8px;
+  border: 3px solid transparent;
+}
+
+.opcion-tipo.activa {
+  border-color: var(--mostaza);
+  background: #fff3d6;
+}
+
 .campo-cliente-label {
   display: block;
   font-size: 13px;
@@ -479,6 +501,24 @@
 
 .link-salir:hover { opacity: 1; }
 
+.link-listos {
+  position: fixed;
+  bottom: 14px;
+  right: 140px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(43, 33, 24, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 16px;
+  opacity: 0.6;
+}
+
+.link-listos:hover { opacity: 1; }
+
 .fila-pedido-activo .mesa-pedido {
   display: inline-block;
   font-size: 12px;
@@ -621,6 +661,15 @@
 .modal-btn-confirmar {
   background: var(--lechuga);
   color: var(--blanco);
+}
+
+.boton-confirmar-anular {
+  background: var(--rojo) !important;
+}
+
+.fila-pedido-activo .btn-anular {
+  background: var(--rojo) !important;
+  color: var(--blanco) !important;
 }
 
 .nota-item {

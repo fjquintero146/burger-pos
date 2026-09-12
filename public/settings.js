@@ -2,6 +2,7 @@ const vistaLogo = document.getElementById('vistaLogo');
 const inputLogo = document.getElementById('inputLogo');
 const botonQuitarLogo = document.getElementById('botonQuitarLogo');
 const nombreLocalEl = document.getElementById('nombreLocal');
+const correoCierreEl = document.getElementById('correoCierre');
 const botonGuardar = document.getElementById('botonGuardar');
 const mensajeForm = document.getElementById('mensajeForm');
 
@@ -24,6 +25,7 @@ async function cargarConfiguracion() {
   logoActual = settings.logo || '';
   renderVistaLogo();
   nombreLocalEl.value = settings.restaurantName || '';
+  correoCierreEl.value = settings.closeEmailTo || '';
 
   const ancho = settings.receiptWidth || '80mm';
   document.querySelectorAll('input[name="papel"]').forEach(radio => {
@@ -61,7 +63,8 @@ botonGuardar.onclick = async () => {
       body: JSON.stringify({
         logo: logoActual,
         restaurantName: nombreLocalEl.value.trim(),
-        receiptWidth
+        receiptWidth,
+        closeEmailTo: correoCierreEl.value.trim()
       })
     });
     if (!res.ok) throw new Error('No se pudo guardar');

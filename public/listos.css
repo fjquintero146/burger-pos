@@ -1,0 +1,81 @@
+body {
+  background: var(--carbon);
+  min-height: 100vh;
+}
+
+.topbar-listos {
+  background: var(--lechuga);
+  color: var(--blanco);
+  padding: 20px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topbar-listos h1 {
+  margin: 0;
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.topbar-listos .logo-header {
+  height: 44px;
+  width: 44px;
+}
+
+.reloj-listos {
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.tablero-listos {
+  padding: 32px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.tarjeta-listo {
+  background: var(--blanco);
+  border-radius: 18px;
+  padding: 24px 16px;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  animation: aparecerListo 0.4s ease;
+}
+
+@keyframes aparecerListo {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.tarjeta-listo .numero-listo {
+  font-size: 48px;
+  font-weight: 900;
+  color: var(--lechuga);
+  line-height: 1;
+}
+
+.tarjeta-listo .icono-tipo-listo {
+  font-size: 26px;
+  margin-top: 6px;
+}
+
+.tarjeta-listo .nombre-listo {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--carbon);
+  margin-top: 6px;
+  word-break: break-word;
+}
+
+.sin-pedidos-listos {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--blanco);
+  opacity: 0.6;
+  font-size: 22px;
+  margin-top: 60px;
+}
