@@ -3,4 +3,7 @@ node_modules/
 burger-pos.db
 burger-pos.db-shm
 burger-pos.db-wal
+central.db
+central.db-shm
+central.db-wal
 *.log

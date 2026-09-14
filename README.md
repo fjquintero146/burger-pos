@@ -352,6 +352,95 @@ antes, solo con texto.
   Los productos sin ingredientes (bebidas, extras) se agregan directo, como antes.
 - Lo que el cajero desmarque se guarda como nota del pedido y aparece en la factura y en el KDS.
 
+## Modo SaaS: varios restaurantes, cada uno con su propio subdominio
+
+Todo lo de arriba describe el modo "un solo restaurante" (la forma en que empezó este
+proyecto). También se puede correr como un SaaS completo donde cualquiera se registra solo,
+paga con tarjeta, y obtiene su propio restaurante aislado en `turestaurante.tuapp.com`.
+
+**Este modo es opcional.** Si no defines la variable `APP_DOMAIN`, el servidor funciona
+exactamente igual que siempre, como un solo restaurante. Solo se activa el modo SaaS si la
+defines.
+
+### Cómo funciona por dentro
+
+- Cada restaurante tiene su **propia base de datos** en Turso (no comparten nada entre sí —
+  ni menú, ni pedidos, ni usuarios). Cuando alguien se registra, el sistema le crea su base
+  de datos automáticamente.
+- Hay una base de datos "central" aparte (`central-db.js`) que solo guarda el directorio de
+  qué restaurantes existen y a cuál base de datos conectarse — nunca datos de pedidos.
+- El subdominio de la URL (`burgerhouse.tuapp.com`) le dice al servidor a qué restaurante
+  conectarse en cada solicitud. Las sesiones de login quedan atadas a un solo restaurante —
+  ni por accidente se puede usar la sesión de un restaurante en otro (esto está reforzado
+  tanto por el navegador como por el propio servidor, y quedó probado).
+
+### Paso 1: Comprar un dominio y apuntarlo
+
+Compra un dominio (Namecheap, GoDaddy, etc. — unos $10-15 USD/año) y configura en tu
+proveedor de DNS:
+- Un registro **A** o **CNAME** para el dominio raíz (`tuapp.com`) apuntando a Northflank.
+- Un registro **CNAME comodín**: `*.tuapp.com` apuntando también a Northflank, para que
+  CUALQUIER subdominio (el que sea) llegue a tu servidor.
+
+Luego, en Northflank, agrega `tuapp.com` **y** `*.tuapp.com` como dominios personalizados de
+tu servicio (Northflank emite el certificado HTTPS automáticamente para ambos).
+
+### Paso 2: Variables de entorno nuevas
+
+Además de las que ya tenías (`SESSION_SECRET`, `SMTP_*`, etc.), agrega:
+
+```
+APP_DOMAIN=tuapp.com
+TURSO_CENTRAL_DATABASE_URL=libsql://...   (crea otra base en Turso, solo para esto)
+TURSO_CENTRAL_AUTH_TOKEN=...
+TURSO_PLATFORM_TOKEN=...   (token de tu ORGANIZACIÓN en Turso, no de una base — Settings → API Tokens)
+TURSO_ORG=tu-organizacion-en-turso
+```
+
+Sin `TURSO_PLATFORM_TOKEN`/`TURSO_ORG`, el registro de restaurantes nuevos no va a poder
+crear bases de datos automáticamente (te lo va a avisar con un error claro en vez de fallar
+en silencio).
+
+### Paso 3: Configurar Stripe (cobro automático)
+
+1. Crea una cuenta gratis en https://dashboard.stripe.com.
+2. Ve a **Products** → crea un producto con un precio **recurrente mensual** (ej. "Plan
+   Restaurante — $50.000 COP/mes"). Copia el ID del precio (empieza con `price_...`).
+3. Ve a **Developers → API keys** y copia tu clave secreta (`sk_...`).
+4. Ve a **Developers → Webhooks** → **Add endpoint**, con la URL
+   `https://tuapp.com/webhook/stripe`, escuchando los eventos `checkout.session.completed` y
+   `customer.subscription.updated`/`.deleted`. Copia el "Signing secret" (`whsec_...`).
+5. Agrega estas variables de entorno:
+
+   ```
+   STRIPE_SECRET_KEY=sk_...
+   STRIPE_PRICE_ID=price_...
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   STRIPE_TRIAL_DAYS=14
+   ```
+
+**Si todavía no configuras Stripe, el registro sigue funcionando** — cada restaurante nuevo
+se activa gratis automáticamente (útil para probar todo el flujo antes de empezar a cobrar).
+
+### Paso 4: Probar el registro de un restaurante nuevo
+
+Entra a `https://tuapp.com/registro.html`, completa el formulario (nombre del restaurante,
+subdominio deseado, tu correo, una clave), y confirma el pago si ya configuraste Stripe. En
+unos segundos tu restaurante queda listo en `https://elsubdominioquepusiste.tuapp.com`.
+
+### Lo que falta para tener el SaaS 100% completo
+
+Lo construido hasta ahora cubre el registro, el cobro automático, y el aislamiento entre
+restaurantes. Todavía faltaría (para una siguiente etapa):
+
+- Un **panel de super-administrador** para ti (el dueño del SaaS): ver todos los
+  restaurantes registrados, su estado de pago, suspender cuentas manualmente, etc.
+- Una página de mercadeo más elaborada en la raíz del dominio (hoy `registro.html` es
+  funcional pero sencilla).
+- Manejo de "¿qué pasa si alguien cancela la suscripción?" más allá de cambiar el estado a
+  "suspendido" (hoy, si se suspende, el restaurante simplemente no puede entrar más —
+  todavía no hay una pantalla explicándole por qué, ni un flujo para reactivar pagando de nuevo).
+
 ## Para cerrar el sistema
 
 En la terminal donde está corriendo, presionar `Ctrl + C`.

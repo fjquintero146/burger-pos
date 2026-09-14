@@ -1,0 +1,45 @@
+.registro-caja {
+  max-width: 420px;
+}
+
+.campo-subdominio {
+  display: flex;
+  align-items: stretch;
+  margin-bottom: 4px;
+}
+
+.campo-subdominio input {
+  border-radius: 10px 0 0 10px;
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.dominio-sufijo {
+  background: var(--gris-claro);
+  color: var(--gris);
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 0 10px 10px 0;
+  white-space: nowrap;
+}
+
+.disponibilidad {
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 18px;
+  margin: 4px 0 14px;
+}
+
+.disponibilidad.ok { color: var(--lechuga); }
+.disponibilidad.no { color: var(--rojo); }
+
+.ya-tengo-cuenta {
+  text-align: center;
+  font-size: 13px;
+  color: var(--gris);
+  margin-top: 18px;
+}

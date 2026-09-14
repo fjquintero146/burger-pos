@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crea tu cuenta — Burger POS</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="login.css">
+<link rel="stylesheet" href="registro.css">
+</head>
+<body>
+
+<div class="login-caja registro-caja">
+  <h1>🍔 Crea tu restaurante</h1>
+  <p class="login-sub">Toma pedidos, controla tu caja y tu cocina desde hoy mismo.</p>
+
+  <form id="formRegistro">
+    <label for="restaurantName">Nombre del restaurante</label>
+    <input type="text" id="restaurantName" placeholder="Ej: Burger House" required>
+
+    <label for="subdomain">Tu dirección</label>
+    <div class="campo-subdominio">
+      <input type="text" id="subdomain" placeholder="burgerhouse" required>
+      <span id="dominioSufijo" class="dominio-sufijo"></span>
+    </div>
+    <p class="disponibilidad" id="disponibilidad"></p>
+
+    <label for="adminEmail">Tu correo</label>
+    <input type="email" id="adminEmail" autocomplete="email" required>
+
+    <label for="adminPassword">Clave</label>
+    <input type="password" id="adminPassword" autocomplete="new-password" placeholder="mínimo 4 caracteres" required>
+
+    <button type="submit" id="botonRegistrar">Crear mi cuenta</button>
+    <p class="login-error" id="registroError"></p>
+  </form>
+
+  <p class="ya-tengo-cuenta">¿Ya tienes cuenta? Entra por la dirección de tu restaurante
+    (ej. <span id="ejemploUrl">turestaurante.tuapp.com</span>/login.html)</p>
+</div>
+
+<script src="registro.js"></script>
+</body>
+</html>
