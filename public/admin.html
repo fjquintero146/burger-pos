@@ -11,15 +11,17 @@
 
 <header class="topbar-admin">
   <h1>🛠️ Administrar Menú</h1>
-  <div>
-    <a class="link-volver" href="users.html">👤 Usuarios</a>
-    <a class="link-volver" href="settings.html">⚙️ Configuración</a>
-    <a class="link-volver" href="sales.html">📊 Ventas</a>
-    <a class="link-volver" href="turnos.html">🧾 Turnos</a>
-    <a class="link-volver" href="pos.html">🧾 Caja</a>
-    <a class="link-volver" href="kds.html">👨‍🍳 Cocina</a>
-    <a class="link-volver" href="#" id="botonSalir">Cerrar sesión</a>
-  </div>
+  <input type="checkbox" id="navToggle" class="nav-toggle-checkbox">
+  <label for="navToggle" class="nav-toggle-btn">☰</label>
+  <nav class="admin-nav">
+    <a class="nav-link" href="users.html">👤 Usuarios</a>
+    <a class="nav-link" href="settings.html">⚙️ Configuración</a>
+    <a class="nav-link" href="sales.html">📊 Ventas</a>
+    <a class="nav-link" href="turnos.html">🧾 Turnos</a>
+    <a class="nav-link" href="pos.html">🧾 Caja</a>
+    <a class="nav-link" href="kds.html">👨‍🍳 Cocina</a>
+    <a class="nav-link nav-link-salir" href="#" id="botonSalir">🚪 Cerrar sesión</a>
+  </nav>
 </header>
 
 <main class="contenedor-admin">

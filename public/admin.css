@@ -1,22 +1,107 @@
 .topbar-admin {
   background: var(--carbon);
   color: var(--blanco);
-  padding: 18px 24px;
+  padding: 14px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
+  position: relative;
 }
 
-.topbar-admin h1 { margin: 0; font-size: 24px; }
+.topbar-admin h1 {
+  margin: 0;
+  font-size: 21px;
+  white-space: nowrap;
+}
 
-.link-volver {
-  color: var(--mostaza);
+.nav-toggle-checkbox {
+  display: none;
+}
+
+.nav-toggle-btn {
+  display: none;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--blanco);
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.nav-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.admin-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--blanco);
   text-decoration: none;
   font-weight: 700;
-  font-size: 17px;
-  margin-left: 18px;
+  font-size: 14px;
+  padding: 9px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.07);
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-link:hover {
+  background: var(--mostaza);
+  color: var(--carbon);
+}
+
+.nav-link-salir {
+  background: rgba(193, 39, 45, 0.25);
+  color: #ffc2c2;
+}
+
+.nav-link-salir:hover {
+  background: var(--rojo);
+  color: var(--blanco);
+}
+
+@media (max-width: 860px) {
+  .nav-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .admin-nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    background: var(--carbon);
+    padding: 10px 16px 18px;
+    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.3);
+    z-index: 40;
+  }
+
+  .nav-link {
+    justify-content: flex-start;
+    padding: 13px 14px;
+    border-radius: 10px;
+    font-size: 16px;
+  }
+
+  .nav-toggle-checkbox:checked ~ .admin-nav {
+    display: flex;
+  }
 }
 
 .contenedor-admin {
