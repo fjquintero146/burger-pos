@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Ventas</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="sales.css">
+<link rel="stylesheet" href="dashboard.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header class="topbar-admin">
+  <h1>📈 Dashboard de Ventas</h1>
+  <input type="checkbox" id="navToggle" class="nav-toggle-checkbox">
+  <label for="navToggle" class="nav-toggle-btn">☰</label>
+  <nav class="admin-nav">
+    <a class="nav-link" href="admin.html">🛠️ Menú</a>
+    <a class="nav-link" href="sales.html">📊 Reporte</a>
+    <a class="nav-link" href="turnos.html">🧾 Turnos</a>
+    <a class="nav-link" href="users.html">👤 Usuarios</a>
+    <a class="nav-link" href="pos.html">🧾 Caja</a>
+    <a class="nav-link nav-link-salir" href="#" id="botonSalir">🚪 Cerrar sesión</a>
+  </nav>
+</header>
+
+<main class="contenedor-ventas">
+
+  <section class="tarjeta-filtro">
+    <div class="campo-fecha">
+      <label for="fechaDesde">Desde</label>
+      <input type="date" id="fechaDesde">
+    </div>
+    <div class="campo-fecha">
+      <label for="fechaHasta">Hasta</label>
+      <input type="date" id="fechaHasta">
+    </div>
+    <button id="botonHoy" class="boton-atajo">Hoy</button>
+    <button id="botonSemana" class="boton-atajo">Últimos 7 días</button>
+    <button id="botonMes" class="boton-atajo">Este mes</button>
+    <button id="botonBuscar" class="boton-buscar">Actualizar</button>
+  </section>
+
+  <section class="kpis-dashboard">
+    <div class="kpi-card">
+      <p class="kpi-etiqueta">Ingresos</p>
+      <p class="kpi-valor" id="kpiIngresos">$0</p>
+      <p class="kpi-comparativo" id="kpiIngresosComp"></p>
+    </div>
+    <div class="kpi-card">
+      <p class="kpi-etiqueta">Pedidos</p>
+      <p class="kpi-valor" id="kpiPedidos">0</p>
+      <p class="kpi-comparativo" id="kpiPedidosComp"></p>
+    </div>
+    <div class="kpi-card">
+      <p class="kpi-etiqueta">Ticket promedio</p>
+      <p class="kpi-valor" id="kpiTicket">$0</p>
+    </div>
+    <div class="kpi-card">
+      <p class="kpi-etiqueta">Tiempo prep. promedio</p>
+      <p class="kpi-valor" id="kpiTiempo">—</p>
+    </div>
+    <div class="kpi-card kpi-card-alerta" id="kpiAnuladosCard">
+      <p class="kpi-etiqueta">Pedidos anulados</p>
+      <p class="kpi-valor" id="kpiAnulados">0</p>
+      <p class="kpi-comparativo" id="kpiAnuladosMonto"></p>
+    </div>
+  </section>
+
+  <section class="grafico-tarjeta grafico-ancho">
+    <h2>Evolución de ventas</h2>
+    <div class="grafico-caja"><canvas id="chartDia"></canvas></div>
+  </section>
+
+  <section class="grid-graficos">
+    <div class="grafico-tarjeta">
+      <h2>Horas pico</h2>
+      <div class="grafico-caja"><canvas id="chartHora"></canvas></div>
+    </div>
+
+    <div class="grafico-tarjeta">
+      <h2>Por tipo de pedido</h2>
+      <div class="grafico-caja grafico-caja-dona"><canvas id="chartTipo"></canvas></div>
+    </div>
+
+    <div class="grafico-tarjeta">
+      <h2>Por método de pago</h2>
+      <div class="grafico-caja grafico-caja-dona"><canvas id="chartMetodoPago"></canvas></div>
+    </div>
+
+    <div class="grafico-tarjeta">
+      <h2>Por cajero</h2>
+      <div class="grafico-caja"><canvas id="chartCajero"></canvas></div>
+    </div>
+
+    <div class="grafico-tarjeta grafico-ancho">
+      <h2>Productos más vendidos</h2>
+      <div class="grafico-caja"><canvas id="chartProductos"></canvas></div>
+    </div>
+  </section>
+
+</main>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

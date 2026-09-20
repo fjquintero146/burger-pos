@@ -218,6 +218,7 @@ app.get('/sales.html', requirePage('administrador'), (req, res) => res.sendFile(
 app.get('/users.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'users.html')));
 app.get('/settings.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'settings.html')));
 app.get('/turnos.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'turnos.html')));
+app.get('/dashboard.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
 app.get('/receipt.html', requirePage('cajero', 'administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'receipt.html')));
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -672,6 +673,13 @@ app.get('/api/sales', requireApi('administrador'), ruta(async (req, res) => {
     args: [from, to]
   });
 
+  const porTipoPedidoResult = await req.db.execute({
+    sql: `SELECT COALESCE(order_type, 'para_llevar') AS tipo, COUNT(*) AS pedidos, SUM(total) AS ingresos
+          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
+          GROUP BY tipo ORDER BY ingresos DESC`,
+    args: [from, to]
+  });
+
   const anuladosResult = await req.db.execute({
     sql: `SELECT order_number AS orderNumber, total, void_reason AS voidReason, voided_by AS voidedBy, voided_at AS voidedAt
           FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND voided = 1
@@ -701,6 +709,21 @@ app.get('/api/sales', requireApi('administrador'), ruta(async (req, res) => {
     args: [from, to]
   });
 
+  // Compara contra el período inmediatamente anterior de la misma duración
+  // (ej. si eliges "esta semana", lo compara contra la semana pasada) — para
+  // saber de un vistazo si las ventas van mejor o peor que antes.
+  const diasEnRango = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
+  const finAnterior = new Date(from);
+  finAnterior.setDate(finAnterior.getDate() - 1);
+  const inicioAnterior = new Date(finAnterior);
+  inicioAnterior.setDate(inicioAnterior.getDate() - (diasEnRango - 1));
+
+  const periodoAnteriorResult = await req.db.execute({
+    sql: `SELECT COUNT(*) AS pedidos, COALESCE(SUM(total), 0) AS ingresos
+          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')`,
+    args: [inicioAnterior.toISOString().slice(0, 10), finAnterior.toISOString().slice(0, 10)]
+  });
+
   res.json({
     from,
     to,
@@ -709,10 +732,15 @@ app.get('/api/sales', requireApi('administrador'), ruta(async (req, res) => {
     porDia: porDiaResult.rows,
     porProducto: porProductoResult.rows,
     porMetodoPago: porMetodoPagoResult.rows,
+    porTipoPedido: porTipoPedidoResult.rows,
     anulados: anuladosResult.rows,
     porHora: porHoraResult.rows,
     porCajero: porCajeroResult.rows,
-    tiempoPromedioPreparacion: tiempoPrepResult.rows[0].minutos
+    tiempoPromedioPreparacion: tiempoPrepResult.rows[0].minutos,
+    periodoAnterior: {
+      pedidos: periodoAnteriorResult.rows[0].pedidos,
+      ingresos: periodoAnteriorResult.rows[0].ingresos
+    }
   });
 }));
 

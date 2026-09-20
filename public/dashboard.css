@@ -1,0 +1,85 @@
+.kpis-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+}
+
+.kpi-card {
+  background: var(--blanco);
+  border-radius: 14px;
+  box-shadow: var(--sombra);
+  padding: 18px;
+  text-align: center;
+}
+
+.kpi-card-alerta {
+  border: 2px solid var(--rojo);
+}
+
+.kpi-etiqueta {
+  margin: 0 0 4px;
+  color: var(--gris);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.kpi-valor {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--rojo-oscuro);
+}
+
+.kpi-comparativo {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 16px;
+}
+
+.kpi-comparativo.sube { color: var(--lechuga); }
+.kpi-comparativo.baja { color: var(--rojo); }
+.kpi-comparativo.igual { color: var(--gris); }
+
+.grid-graficos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.grafico-tarjeta {
+  background: var(--blanco);
+  border-radius: 14px;
+  box-shadow: var(--sombra);
+  padding: 18px;
+}
+
+.grafico-tarjeta h2 {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.grafico-ancho {
+  grid-column: 1 / -1;
+}
+
+.grafico-caja {
+  position: relative;
+  height: 260px;
+}
+
+.grafico-caja-dona {
+  height: 220px;
+}
+
+.sin-datos-grafico {
+  text-align: center;
+  color: var(--gris);
+  padding: 40px 0;
+}
+
+@media (max-width: 700px) {
+  .grafico-caja { height: 220px; }
+  .kpi-valor { font-size: 21px; }
+}
