@@ -1,3 +1,18 @@
+.aviso-dashboard {
+  background: var(--mostaza);
+  color: var(--carbon);
+  font-weight: 700;
+  padding: 12px 16px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.aviso-dashboard.error {
+  background: #fdecea;
+  color: var(--rojo);
+  border: 2px solid var(--rojo);
+}
+
 .kpis-dashboard {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));

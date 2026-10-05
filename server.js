@@ -16,6 +16,7 @@ const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const { Server } = require('socket.io');
 const { db, initDb, initSchema, nextOrderNumber } = require('./db');
+const { MODIFICADOR_SQL: MOD, fechaLocalHoy } = require('./fecha');
 const { generarPdfCierre } = require('./pdf-cierre');
 const { enviarCorreoConPdf } = require('./mailer');
 const { requireTenant, extraerSubdominio } = require('./tenant-middleware');
@@ -252,7 +253,7 @@ app.put('/api/settings', requireApi('administrador'), ruta(async (req, res) => {
 // ---------- MENÚ (público: solo productos activos y no agotados hoy) ----------
 
 app.get('/api/menu', ruta(async (req, res) => {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = fechaLocalHoy();
   const result = await req.db.execute({
     sql: `SELECT * FROM menu_items
           WHERE active = 1 AND (sold_out_date IS NULL OR sold_out_date != ?)
@@ -265,14 +266,14 @@ app.get('/api/menu', ruta(async (req, res) => {
 // ---------- MENÚ: marcar/quitar "agotado hoy" (caja y administrador) ----------
 
 app.get('/api/menu/estado', requireApi('cajero', 'cocina', 'administrador'), ruta(async (req, res) => {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = fechaLocalHoy();
   const result = await req.db.execute('SELECT * FROM menu_items WHERE active = 1 ORDER BY category, name');
   const items = result.rows.map(item => ({ ...item, soldOutToday: item.sold_out_date === hoy }));
   res.json(items);
 }));
 
 app.patch('/api/menu/:id/agotado-hoy', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = fechaLocalHoy();
   const existing = (await req.db.execute({ sql: 'SELECT * FROM menu_items WHERE id = ?', args: [req.params.id] })).rows[0];
   if (!existing) return res.status(404).json({ error: 'Producto no encontrado' });
 
@@ -641,19 +642,19 @@ app.get('/api/pedidos-listos', ruta(async (req, res) => {
 // ---------- VENTAS (reporte por rango de fechas) ----------
 
 app.get('/api/sales', requireApi('administrador'), ruta(async (req, res) => {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = fechaLocalHoy();
   const from = req.query.from || hoy;
   const to = req.query.to || hoy;
 
   const resumenResult = await req.db.execute({
     sql: `SELECT COUNT(*) AS pedidos, COALESCE(SUM(total), 0) AS ingresos
-          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')`,
+          FROM orders WHERE date(created_at, '${MOD}') BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')`,
     args: [from, to]
   });
 
   const porDiaResult = await req.db.execute({
-    sql: `SELECT date(created_at) AS dia, COUNT(*) AS pedidos, SUM(total) AS ingresos
-          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
+    sql: `SELECT date(created_at, '${MOD}') AS dia, COUNT(*) AS pedidos, SUM(total) AS ingresos
+          FROM orders WHERE date(created_at, '${MOD}') BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
           GROUP BY dia ORDER BY dia`,
     args: [from, to]
   });
@@ -661,50 +662,50 @@ app.get('/api/sales', requireApi('administrador'), ruta(async (req, res) => {
   const porProductoResult = await req.db.execute({
     sql: `SELECT oi.name AS nombre, SUM(oi.qty) AS cantidad, SUM(oi.price * oi.qty) AS ingresos
           FROM order_items oi JOIN orders o ON o.id = oi.order_id
-          WHERE date(o.created_at) BETWEEN date(?) AND date(?) AND o.status NOT IN ('esperando_pago', 'anulado')
+          WHERE date(o.created_at, '${MOD}') BETWEEN date(?) AND date(?) AND o.status NOT IN ('esperando_pago', 'anulado')
           GROUP BY oi.name ORDER BY ingresos DESC`,
     args: [from, to]
   });
 
   const porMetodoPagoResult = await req.db.execute({
     sql: `SELECT COALESCE(payment_method, 'Sin especificar') AS metodo, COUNT(*) AS pedidos, SUM(total) AS ingresos
-          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
+          FROM orders WHERE date(created_at, '${MOD}') BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
           GROUP BY metodo ORDER BY ingresos DESC`,
     args: [from, to]
   });
 
   const porTipoPedidoResult = await req.db.execute({
     sql: `SELECT COALESCE(order_type, 'para_llevar') AS tipo, COUNT(*) AS pedidos, SUM(total) AS ingresos
-          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
+          FROM orders WHERE date(created_at, '${MOD}') BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
           GROUP BY tipo ORDER BY ingresos DESC`,
     args: [from, to]
   });
 
   const anuladosResult = await req.db.execute({
     sql: `SELECT order_number AS orderNumber, total, void_reason AS voidReason, voided_by AS voidedBy, voided_at AS voidedAt
-          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND voided = 1
+          FROM orders WHERE date(created_at, '${MOD}') BETWEEN date(?) AND date(?) AND voided = 1
           ORDER BY voided_at DESC`,
     args: [from, to]
   });
 
   // Hora pico de ventas (ajustado a hora de Colombia, UTC-5) — útil para planear personal.
   const porHoraResult = await req.db.execute({
-    sql: `SELECT strftime('%H', created_at, '-5 hours') AS hora, COUNT(*) AS pedidos, SUM(total) AS ingresos
-          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
+    sql: `SELECT strftime('%H', created_at, '${MOD}') AS hora, COUNT(*) AS pedidos, SUM(total) AS ingresos
+          FROM orders WHERE date(created_at, '${MOD}') BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
           GROUP BY hora ORDER BY hora`,
     args: [from, to]
   });
 
   const porCajeroResult = await req.db.execute({
     sql: `SELECT COALESCE(created_by, 'Sin especificar') AS cajero, COUNT(*) AS pedidos, SUM(total) AS ingresos
-          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
+          FROM orders WHERE date(created_at, '${MOD}') BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')
           GROUP BY cajero ORDER BY ingresos DESC`,
     args: [from, to]
   });
 
   const tiempoPrepResult = await req.db.execute({
     sql: `SELECT AVG((julianday(ready_at) - julianday(created_at)) * 24 * 60) AS minutos
-          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?)
+          FROM orders WHERE date(created_at, '${MOD}') BETWEEN date(?) AND date(?)
           AND ready_at IS NOT NULL AND status NOT IN ('esperando_pago', 'anulado')`,
     args: [from, to]
   });
@@ -720,7 +721,7 @@ app.get('/api/sales', requireApi('administrador'), ruta(async (req, res) => {
 
   const periodoAnteriorResult = await req.db.execute({
     sql: `SELECT COUNT(*) AS pedidos, COALESCE(SUM(total), 0) AS ingresos
-          FROM orders WHERE date(created_at) BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')`,
+          FROM orders WHERE date(created_at, '${MOD}') BETWEEN date(?) AND date(?) AND status NOT IN ('esperando_pago', 'anulado')`,
     args: [inicioAnterior.toISOString().slice(0, 10), finAnterior.toISOString().slice(0, 10)]
   });
 
@@ -838,7 +839,7 @@ app.post('/api/shifts/:id/cerrar', requireApi('cajero', 'administrador'), ruta(a
     settingsResult.rows.forEach(row => { settings[row.key] = row.value; });
 
     const pdfBuffer = await generarPdfCierre(turnoFinal, resumen, settings.restaurantName);
-    const fechaArchivo = new Date().toISOString().slice(0, 10);
+    const fechaArchivo = fechaLocalHoy();
     correo = await enviarCorreoConPdf({
       to: settings.closeEmailTo,
       subject: `Cierre de caja ${fechaArchivo} — ${settings.restaurantName || 'Local de Hamburguesas'}`,

@@ -9,6 +9,12 @@
 <link rel="stylesheet" href="sales.css">
 <link rel="stylesheet" href="dashboard.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script>
+  // Si por algún firewall/bloqueador no cargó desde cdnjs, se intenta con otro CDN.
+  if (typeof Chart === 'undefined') {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"><\/script>');
+  }
+</script>
 </head>
 <body>
 
@@ -42,6 +48,8 @@
     <button id="botonMes" class="boton-atajo">Este mes</button>
     <button id="botonBuscar" class="boton-buscar">Actualizar</button>
   </section>
+
+  <p class="aviso-dashboard" id="avisoDashboard" style="display:none;"></p>
 
   <section class="kpis-dashboard">
     <div class="kpi-card">

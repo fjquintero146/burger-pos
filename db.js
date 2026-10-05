@@ -14,6 +14,7 @@
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const { createClient } = require('@libsql/client');
+const { fechaLocalHoy } = require('./fecha');
 
 // ---------- Conexión "single-tenant" (para cuando no se usa el modo SaaS) ----------
 
@@ -190,7 +191,7 @@ async function initSchema(dbClient, options = {}) {
   if (counterFecha.rows.length === 0) {
     await dbClient.execute({
       sql: 'INSERT INTO counters (name, value) VALUES (?, ?)',
-      args: ['order_number_date', new Date().toISOString().slice(0, 10)]
+      args: ['order_number_date', fechaLocalHoy()]
     });
   }
 
@@ -242,7 +243,7 @@ async function initDb() {
 // dbClient, de forma segura ante dos cajas escribiendo al mismo tiempo. Se
 // reinicia a 1 cada día.
 async function nextOrderNumber(dbClient) {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = fechaLocalHoy();
   const tx = await dbClient.transaction('write');
   try {
     const filaFecha = await tx.execute({ sql: 'SELECT value FROM counters WHERE name = ?', args: ['order_number_date'] });

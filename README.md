@@ -56,6 +56,13 @@ puede desplegar en internet de forma gratuita (ver sección "Desplegar en intern
   luz, reinicios o cierres inesperados que un simple archivo de texto.
 - Pantallas optimizadas para usarse desde celulares y tablets, no solo computador.
 
+## Zona horaria
+
+Los reportes de ventas, el dashboard, el contador diario de pedidos y "agotado hoy" usan
+el **día local del restaurante**, no UTC — por defecto Colombia (UTC-5). Si tu restaurante
+está en otro país, agrega la variable de entorno `TZ_OFFSET_HOURS` con tu diferencia horaria
+respecto a UTC (ej. `-6` para México, `-3` para Argentina).
+
 ## Requisitos
 
 Instalar **Node.js** (versión 18 o superior) en el computador que va a hacer de "servidor"

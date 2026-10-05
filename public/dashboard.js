@@ -42,10 +42,40 @@ function opcionesBase(extra = {}) {
 }
 
 async function cargarDashboard() {
+  const avisoEl = document.getElementById('avisoDashboard');
+  avisoEl.style.display = 'none';
+
+  if (typeof Chart === 'undefined') {
+    avisoEl.textContent = '⚠️ No se pudo cargar la librería de gráficos (Chart.js) desde internet. ' +
+      'Revisa tu conexión, o si hay un bloqueador de contenido/firewall filtrando cdnjs.cloudflare.com.';
+    avisoEl.className = 'aviso-dashboard error';
+    avisoEl.style.display = 'block';
+    return;
+  }
+
   const from = fechaDesdeEl.value;
   const to = fechaHastaEl.value;
-  const res = await fetch(`/api/sales?from=${from}&to=${to}`);
-  const datos = await res.json();
+
+  let datos;
+  try {
+    const res = await fetch(`/api/sales?from=${from}&to=${to}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `El servidor respondió con error ${res.status}`);
+    }
+    datos = await res.json();
+  } catch (e) {
+    avisoEl.textContent = '⚠️ No se pudo cargar el reporte: ' + e.message;
+    avisoEl.className = 'aviso-dashboard error';
+    avisoEl.style.display = 'block';
+    return;
+  }
+
+  if (!datos.pedidos) {
+    avisoEl.textContent = 'No hay ventas registradas en el rango de fechas elegido — prueba con "Últimos 7 días" o "Este mes", o cambia las fechas.';
+    avisoEl.className = 'aviso-dashboard';
+    avisoEl.style.display = 'block';
+  }
 
   renderKpis(datos);
   renderGraficoDia(datos.porDia);
