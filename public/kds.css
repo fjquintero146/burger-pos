@@ -200,3 +200,18 @@ body { background: var(--carbon); }
   .tarjeta .numero { font-size: 20px; }
   .tarjeta li { font-size: 17px; }
 }
+
+/* Botón de pantalla completa del encabezado */
+.boton-pantalla-completa {
+  background: transparent;
+  color: var(--blanco);
+  opacity: 0.6;
+  padding: 6px 8px;
+  margin-left: 10px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.boton-pantalla-completa:hover { opacity: 1; background: rgba(255, 255, 255, 0.1); }

@@ -63,3 +63,70 @@
     padding: 12px 16px;
   }
 }
+
+/* Solo el kiosco: si la tablet está en vertical, las categorías se ponen a la
+   izquierda (columna angosta) y los productos navegan al centro, en vez de
+   apilar categorías arriba y carrito abajo. */
+@media (orientation: portrait) {
+  .layout {
+    flex-direction: row;
+    height: calc(100vh - 68px);
+  }
+
+  .menu-panel {
+    flex-direction: row;
+    overflow: hidden;
+    padding: 12px 8px 12px 12px;
+  }
+
+  .tabs {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    width: 104px;
+    gap: 8px;
+    margin-bottom: 0;
+    margin-right: 10px;
+    overflow-y: auto;
+  }
+
+  .tab-boton {
+    width: 100%;
+    text-align: center;
+    padding: 14px 6px;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .grid {
+    flex: 1;
+    overflow-y: auto;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+
+  .carrito {
+    width: 300px;
+    flex-shrink: 0;
+    border-left: 3px solid var(--gris-claro);
+    border-top: none;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 520px) {
+  .tabs { width: 84px; }
+  .tab-boton { font-size: 12px; padding: 12px 4px; }
+  .carrito { width: 240px; }
+}
+
+/* Descripción corta del producto: lista de lo que lleva (se ve solo en el kiosco) */
+.producto-descripcion {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gris);
+  line-height: 1.3;
+  margin: 2px 0 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

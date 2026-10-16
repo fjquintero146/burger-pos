@@ -158,3 +158,45 @@ document.getElementById('botonSalir').onclick = async e => {
   await fetch('/api/logout', { method: 'POST' });
   window.location.href = 'login.html';
 };
+
+// ---------- Pantalla completa ----------
+// Útil para dejar la tablet/TV de cocina mostrando solo los pedidos. En iPad/iPhone
+// el navegador no permite pantalla completa desde la página, así que ahí se
+// explica la alternativa (agregar a la pantalla de inicio).
+const botonPantallaCompleta = document.getElementById('botonPantallaCompleta');
+
+const ICONO_ENTRAR = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+const ICONO_SALIR = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+
+function pantallaCompletaActiva() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+
+function actualizarBotonPantallaCompleta() {
+  const activa = pantallaCompletaActiva();
+  botonPantallaCompleta.innerHTML = activa ? ICONO_SALIR : ICONO_ENTRAR;
+  botonPantallaCompleta.title = activa ? 'Salir de pantalla completa' : 'Pantalla completa';
+}
+
+botonPantallaCompleta.onclick = async () => {
+  const el = document.documentElement;
+  const entrar = el.requestFullscreen || el.webkitRequestFullscreen;
+  const salir = document.exitFullscreen || document.webkitExitFullscreen;
+
+  try {
+    if (pantallaCompletaActiva()) {
+      await salir.call(document);
+    } else if (entrar) {
+      await entrar.call(el);
+    } else {
+      alert('Este navegador no permite pantalla completa desde la página. ' +
+        'En iPad/iPhone: toca Compartir → "Agregar a pantalla de inicio" y abre el KDS desde ese ícono.');
+    }
+  } catch (e) {
+    alert('No se pudo activar la pantalla completa en este navegador.');
+  }
+};
+
+document.addEventListener('fullscreenchange', actualizarBotonPantallaCompleta);
+document.addEventListener('webkitfullscreenchange', actualizarBotonPantallaCompleta);
+actualizarBotonPantallaCompleta();
