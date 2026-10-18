@@ -1,124 +1,189 @@
-.campo-mesa-topbar {
+/* ===== Kiosco de autopedido: pensado primero para celular/tablet en vertical ===== */
+
+html, body { height: 100%; }
+body { background: var(--fondo); }
+
+/* sobre las ventanas (z-index 50) para que los avisos siempre se vean */
+.toast { z-index: 120; }
+
+/* ---------- Paso 1: ¿aquí o para llevar? ---------- */
+
+.pantalla-inicio {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.15);
-  padding: 6px 14px;
-  border-radius: 8px;
-}
-
-.campo-mesa-topbar label {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.campo-mesa-topbar input {
-  width: 160px;
-  padding: 8px;
-  font-size: 17px;
-  font-weight: 700;
-  border: none;
-  border-radius: 6px;
-  text-align: left;
-}
-
-.confirmacion-caja {
+  justify-content: center;
+  gap: 16px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 24px 20px;
   text-align: center;
+  color: var(--blanco);
+  background: linear-gradient(160deg, var(--rojo), var(--rojo-oscuro));
+}
+
+.logo-inicio {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  background: var(--blanco);
+  border-radius: 22px;
+  padding: 6px;
+}
+
+.pantalla-inicio h1 { margin: 0; font-size: 30px; }
+
+.inicio-pregunta {
+  margin: 0 0 6px;
+  font-size: 21px;
+  opacity: 0.92;
+}
+
+.inicio-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
   max-width: 420px;
 }
 
-.confirmacion-icono {
-  font-size: 56px;
-  margin-bottom: 8px;
+.inicio-opcion {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 26px 16px;
+  background: var(--blanco);
+  color: var(--carbon);
+  font-size: 22px;
+  font-weight: 800;
+  border-radius: 20px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
-.confirmacion-texto {
-  font-size: 20px;
+.inicio-icono { font-size: 54px; line-height: 1; }
+
+@media (orientation: landscape) and (min-width: 700px) {
+  .inicio-opciones { flex-direction: row; max-width: 640px; }
+}
+
+/* ---------- Paso 2: productos ---------- */
+
+.pantalla-menu {
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh; /* en celular descuenta la barra del navegador */
+}
+
+.pantalla-menu .topbar {
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+.pantalla-menu .topbar h1 { font-size: 22px; }
+
+.chip-tipo {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--blanco);
+  font-size: 14px;
   font-weight: 700;
-  margin: 8px 0;
+  padding: 8px 14px;
+  border-radius: 20px;
 }
 
-.confirmacion-aviso {
-  color: var(--gris);
-  font-size: 16px;
-  margin-bottom: 22px;
+.kiosko-cuerpo {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  overflow: hidden;
 }
 
-#botonNuevoPedido {
-  width: 100%;
-  padding: 18px;
-  font-size: 19px;
+/* Pantalla ancha (horizontal): categorías en una fila arriba */
+.kiosko-cuerpo .tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  gap: 8px;
+  margin: 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
-/* Pantalla pensada primero para tablet/celular: botones aún más grandes */
-@media (max-width: 700px) {
-  .grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  }
-  .topbar h1 {
-    font-size: 21px;
-  }
-  .tab-boton {
-    font-size: 17px;
-    padding: 12px 16px;
-  }
+.kiosko-cuerpo .tab-boton {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  padding: 12px 16px;
+  white-space: nowrap;
 }
 
-/* Solo el kiosco: si la tablet está en vertical, las categorías se ponen a la
-   izquierda (columna angosta) y los productos navegan al centro, en vez de
-   apilar categorías arriba y carrito abajo. */
+.tab-icono { font-size: 22px; line-height: 1; }
+
+.kiosko-cuerpo .grid {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  padding-bottom: 12px;
+}
+
+/* Pantalla vertical: categorías a la izquierda, productos al centro */
 @media (orientation: portrait) {
-  .layout {
+  .kiosko-cuerpo {
     flex-direction: row;
-    height: calc(100vh - 68px);
-  }
-
-  .menu-panel {
-    flex-direction: row;
-    overflow: hidden;
-    padding: 12px 8px 12px 12px;
-  }
-
-  .tabs {
-    flex-direction: column;
-    flex-wrap: nowrap;
-    flex-shrink: 0;
-    width: 104px;
     gap: 8px;
-    margin-bottom: 0;
-    margin-right: 10px;
-    overflow-y: auto;
+    padding: 10px 8px 8px 10px;
   }
 
-  .tab-boton {
+  .kiosko-cuerpo .tabs {
+    flex-direction: column;
+    width: 88px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-bottom: 0;
+  }
+
+  .kiosko-cuerpo .tab-boton {
+    flex-direction: column;
+    justify-content: center;
     width: 100%;
+    gap: 4px;
+    padding: 10px 3px;
+    font-size: 12px;
+    line-height: 1.15;
     text-align: center;
-    padding: 14px 6px;
-    font-size: 14px;
-    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
-  .grid {
-    flex: 1;
-    overflow-y: auto;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  }
-
-  .carrito {
-    width: 300px;
-    flex-shrink: 0;
-    border-left: 3px solid var(--gris-claro);
-    border-top: none;
-  }
+  .tab-icono { font-size: 24px; }
 }
 
+/* Celular en vertical: dos productos por fila, tarjetas compactas */
 @media (orientation: portrait) and (max-width: 520px) {
-  .tabs { width: 84px; }
-  .tab-boton { font-size: 12px; padding: 12px 4px; }
-  .carrito { width: 240px; }
+  .kiosko-cuerpo .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .pantalla-menu .topbar h1 { font-size: 19px; }
+  .producto .nombre { font-size: 15px; }
+  .producto .precio { font-size: 15px; }
+  .producto-info { padding: 8px 9px 10px; }
+  .producto-boton-mas { width: 28px; height: 28px; font-size: 17px; top: 6px; right: 6px; }
 }
 
-/* Descripción corta del producto: lista de lo que lleva (se ve solo en el kiosco) */
+/* Descripción corta del producto: lo que lleva */
 .producto-descripcion {
   font-size: 12px;
   font-weight: 500;
@@ -130,3 +195,142 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ---------- Barra inferior fija: total + botón ---------- */
+
+.barra-total {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--blanco);
+  border-top: 3px solid var(--gris-claro);
+  box-shadow: 0 -4px 14px rgba(43, 33, 24, 0.1);
+}
+
+.barra-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.barra-cantidad { font-size: 13px; font-weight: 700; color: var(--gris); }
+.barra-valor { font-size: 25px; font-weight: 800; }
+
+.boton-ver-pedido {
+  background: var(--lechuga);
+  color: var(--blanco);
+  font-size: 17px;
+  font-weight: 800;
+  padding: 15px 18px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.boton-ver-pedido:disabled {
+  background: var(--gris-claro);
+  color: var(--gris);
+}
+
+.barra-total.pulso .barra-valor { animation: latido 0.35s ease; }
+
+@keyframes latido {
+  50% { transform: scale(1.12); color: var(--lechuga); }
+}
+
+/* ---------- Paso 3: hoja "Tu pedido" (sube desde abajo) ---------- */
+
+.hoja-fondo {
+  align-items: flex-end;
+  padding: 0;
+}
+
+.hoja-pedido {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  max-height: 92vh;
+  max-height: 92dvh;
+  overflow-y: auto;
+  padding: 16px 18px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--blanco);
+  border-radius: 20px 20px 0 0;
+  animation: subirHoja 0.22s ease;
+}
+
+@keyframes subirHoja {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.hoja-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.hoja-cabecera h2 { margin: 0; font-size: 24px; }
+
+.hoja-cerrar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--gris-claro);
+  color: var(--carbon);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.hoja-pedido .items-carrito {
+  flex: 0 1 auto;
+  max-height: 34vh;
+  max-height: 34dvh;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+.hoja-pedido .campo-cliente { margin-bottom: 4px; font-size: 17px; }
+.hoja-pedido .campo-cliente.error { border-color: var(--rojo); }
+
+.error-nombre {
+  min-height: 18px;
+  margin: 0 0 6px;
+  color: var(--rojo);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.hoja-aviso {
+  margin: 0 0 8px;
+  text-align: center;
+  color: var(--gris);
+  font-size: 14px;
+}
+
+.hoja-acciones { display: flex; gap: 10px; }
+
+.boton-secundario {
+  flex: 1;
+  padding: 12px;
+  background: var(--gris-claro);
+  color: var(--carbon);
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 10px;
+}
+
+.hoja-acciones .boton-cancelar { flex: 1; }
+
+/* ---------- Confirmación ---------- */
+
+.confirmacion-caja { text-align: center; max-width: 420px; }
+.confirmacion-icono { font-size: 56px; margin-bottom: 8px; }
+.confirmacion-texto { font-size: 20px; font-weight: 700; margin: 8px 0; }
+.confirmacion-aviso { color: var(--gris); font-size: 16px; margin-bottom: 22px; }
+
+#botonNuevoPedido { width: 100%; padding: 18px; font-size: 19px; }

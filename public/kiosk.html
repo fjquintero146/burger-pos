@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Haz tu Pedido</title>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="pos.css">
@@ -10,41 +10,73 @@
 </head>
 <body>
 
-<header class="topbar">
-  <h1><img id="logoHeader" class="logo-header" style="display:none;"> <span id="tituloHeader">🍔 Haz tu Pedido</span></h1>
-  <div class="topbar-derecha">
-    <div class="campo-mesa-topbar">
-      <label for="campoMesa">Nombre del pedido</label>
-      <input type="text" id="campoMesa" placeholder="Tu nombre">
-    </div>
+<!-- PASO 1: ¿aquí o para llevar? -->
+<section class="pantalla-inicio" id="pantallaInicio">
+  <img id="logoInicio" class="logo-inicio" style="display:none;" alt="Logo">
+  <h1 id="tituloInicio">¡Bienvenido!</h1>
+  <p class="inicio-pregunta">¿Dónde vas a comer?</p>
+  <div class="inicio-opciones">
+    <button type="button" class="inicio-opcion" data-tipo="mesa">
+      <span class="inicio-icono">🍽️</span>
+      <span>Aquí en el local</span>
+    </button>
+    <button type="button" class="inicio-opcion" data-tipo="para_llevar">
+      <span class="inicio-icono">🥡</span>
+      <span>Para llevar</span>
+    </button>
   </div>
-</header>
+</section>
 
-<main class="layout">
+<!-- PASO 2: elegir productos -->
+<div class="pantalla-menu" id="pantallaMenu" style="display:none;">
+  <header class="topbar">
+    <h1><img id="logoHeader" class="logo-header" style="display:none;" alt="Logo"> <span id="tituloHeader">🍔 Haz tu Pedido</span></h1>
+    <button type="button" class="chip-tipo" id="botonCambiarTipo"></button>
+  </header>
 
-  <section class="menu-panel">
+  <main class="kiosko-cuerpo">
     <nav class="tabs" id="tabs"></nav>
     <div class="grid" id="grid"></div>
-  </section>
+  </main>
 
-  <aside class="carrito">
-    <h2>Tu Pedido</h2>
-    <div class="opciones-tipo-pedido" id="opcionesTipoPedido">
-      <button class="opcion-tipo" data-tipo="mesa">🍽️ Aquí en el local</button>
-      <button class="opcion-tipo" data-tipo="para_llevar">🥡 Para Llevar</button>
+  <footer class="barra-total" id="barraTotal">
+    <div class="barra-info">
+      <span class="barra-cantidad" id="barraCantidad">Tu pedido está vacío</span>
+      <span class="barra-valor" id="barraValor">$0</span>
     </div>
+    <button type="button" class="boton-ver-pedido" id="botonVerPedido" disabled>Confirmar pedido →</button>
+  </footer>
+</div>
+
+<!-- PASO 3: revisar y enviar (hoja que sube desde abajo) -->
+<div class="modal-fondo hoja-fondo" id="hojaPedidoFondo">
+  <div class="hoja-pedido">
+    <div class="hoja-cabecera">
+      <h2>Tu pedido</h2>
+      <button type="button" class="hoja-cerrar" id="botonCerrarHoja" aria-label="Cerrar">✕</button>
+    </div>
+
     <div class="items-carrito" id="itemsCarrito">
       <p class="vacio" id="mensajeVacio">Toca un producto para agregarlo</p>
     </div>
+
+    <label class="campo-cliente-label" for="campoMesa">Nombre del pedido</label>
+    <input type="text" id="campoMesa" class="campo-cliente" placeholder="Tu nombre" autocomplete="off">
+    <p class="error-nombre" id="errorNombre"></p>
+
     <div class="total-linea">
       <span>Total</span>
       <span id="total">$0</span>
     </div>
-    <button class="boton-enviar" id="botonEnviar">ENVIAR PEDIDO</button>
-    <button class="boton-cancelar" id="botonCancelar">Vaciar Pedido</button>
-  </aside>
+    <button class="boton-enviar" id="botonEnviar" disabled>ENVIAR PEDIDO</button>
+    <p class="hoja-aviso">El pago se hace en caja</p>
 
-</main>
+    <div class="hoja-acciones">
+      <button type="button" class="boton-secundario" id="botonSeguir">+ Seguir pidiendo</button>
+      <button type="button" class="boton-cancelar" id="botonCancelar">Vaciar pedido</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
