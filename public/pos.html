@@ -36,7 +36,10 @@
       <button class="opcion-tipo" data-tipo="domicilio">🛵 Domicilio</button>
     </div>
     <label class="campo-cliente-label" for="campoCliente">Nombre de quien pide (opcional)</label>
-    <input type="text" id="campoCliente" class="campo-cliente" placeholder="Ej: Carlos, mesa 4...">
+    <div class="campo-cliente-fila">
+      <input type="text" id="campoCliente" class="campo-cliente" placeholder="Ej: Carlos, mesa 4...">
+      <button type="button" id="botonMicrofono" class="boton-microfono" title="Dictar el nombre por voz" aria-label="Dictar el nombre por voz">🎤</button>
+    </div>
     <div class="items-carrito" id="itemsCarrito">
       <p class="vacio" id="mensajeVacio">Toca un producto para agregarlo</p>
     </div>

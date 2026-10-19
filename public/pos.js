@@ -853,3 +853,78 @@ renderCarrito();
 cargarMarca();
 actualizarAvisoOffline();
 intentarEnviarPendientes();
+
+// ---------- Nombre por voz ----------
+// El empleado puede escribir el nombre (como siempre) o tocar el micrófono y decirlo.
+// Siempre queda editable por si el reconocimiento se equivoca con algún nombre.
+// Si el navegador no soporta reconocimiento de voz, el botón se oculta solo.
+(function configurarNombrePorVoz() {
+  const botonMicrofono = document.getElementById('botonMicrofono');
+  const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!botonMicrofono) return;
+  if (!Reconocimiento) {
+    botonMicrofono.style.display = 'none';
+    return;
+  }
+
+  const placeholderOriginal = campoClienteEl.placeholder;
+  let reconocimiento = null;
+  let escuchando = false;
+
+  // "juan perez." -> "Juan Perez" (sin punto final y con mayúscula inicial en cada palabra)
+  function limpiarNombre(texto) {
+    return texto
+      .trim()
+      .replace(/[.,;:!?]+$/, '')
+      .replace(/(^|\s)(\p{L})/gu, (_, espacio, letra) => espacio + letra.toUpperCase());
+  }
+
+  const MENSAJES_ERROR = {
+    'not-allowed': 'Permite el micrófono en el navegador para dictar el nombre',
+    'service-not-allowed': 'Este navegador no permite dictado por voz ahora mismo',
+    'no-speech': 'No se escuchó nada, intenta de nuevo',
+    'audio-capture': 'No se encontró un micrófono',
+    'network': 'Se necesita internet para reconocer la voz'
+  };
+
+  botonMicrofono.onclick = () => {
+    if (escuchando) {
+      reconocimiento.stop();
+      return;
+    }
+
+    reconocimiento = new Reconocimiento();
+    reconocimiento.lang = 'es-CO';
+    reconocimiento.interimResults = true; // va mostrando lo que entiende mientras habla
+    reconocimiento.continuous = false;
+    reconocimiento.maxAlternatives = 1;
+
+    reconocimiento.onstart = () => {
+      escuchando = true;
+      botonMicrofono.classList.add('escuchando');
+      campoClienteEl.placeholder = 'Escuchando… di el nombre';
+    };
+
+    reconocimiento.onresult = evento => {
+      const texto = Array.from(evento.results).map(r => r[0].transcript).join(' ');
+      campoClienteEl.value = limpiarNombre(texto);
+    };
+
+    reconocimiento.onerror = evento => {
+      mostrarToast(MENSAJES_ERROR[evento.error] || 'No se pudo usar el micrófono');
+    };
+
+    reconocimiento.onend = () => {
+      escuchando = false;
+      botonMicrofono.classList.remove('escuchando');
+      campoClienteEl.placeholder = placeholderOriginal;
+    };
+
+    try {
+      reconocimiento.start();
+    } catch (e) {
+      mostrarToast('No se pudo iniciar el micrófono');
+    }
+  };
+})();
