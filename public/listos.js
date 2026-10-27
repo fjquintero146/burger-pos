@@ -1,4 +1,4 @@
-const socket = io({ query: { publico: "1" } }); // pantalla publica: sin login, solo pedidos listos
+const socket = io();
 const tableroListos = document.getElementById('tableroListos');
 const sinPedidosListos = document.getElementById('sinPedidosListos');
 

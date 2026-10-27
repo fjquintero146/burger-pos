@@ -126,13 +126,11 @@ function renderGrid() {
   menu.filter(p => p.category === categoriaActiva).forEach(producto => {
     const div = document.createElement('div');
     div.className = 'producto';
-    div.dataset.id = producto.id;
     div.innerHTML = `
       <div class="producto-foto">
         ${producto.image
           ? `<img class="producto-img" src="${producto.image}" alt="${producto.name}">`
           : `<div class="producto-img-generica">${iconoGenerico(producto.category)}</div>`}
-        <span class="producto-cantidad" hidden></span>
         <div class="producto-boton-mas">+</div>
       </div>
       <div class="producto-info">
@@ -269,7 +267,6 @@ function renderCarrito() {
     ? 'Tu pedido está vacío'
     : `${cantidad} producto${cantidad > 1 ? 's' : ''}`;
   botonVerPedido.disabled = cantidad === 0;
-  actualizarContadoresProductos();
   botonEnviar.disabled = cantidad === 0;
 
   // si se quitó todo mientras la hoja estaba abierta, se cierra sola
@@ -379,23 +376,7 @@ cargarMarca();
 // Si el administrador cambia el menú o la marca mientras hay tablets activas,
 // se refresca solo (usa el mismo canal de tiempo real que caja y cocina).
 if (window.io) {
-  const socket = io({ query: { publico: "1" } }); // kiosco: sin login, solo menu y marca
+  const socket = io();
   socket.on('menu-updated', cargarMenu);
   socket.on('settings-updated', cargarMarca);
-}
-
-// Muestra en cada producto cuántas unidades hay en el carrito (suma todas sus variantes,
-// por ejemplo la misma hamburguesa con y sin cebolla).
-function actualizarContadoresProductos() {
-  const cantidades = {};
-  Object.values(carrito).forEach(i => { cantidades[i.id] = (cantidades[i.id] || 0) + i.qty; });
-  document.querySelectorAll('.producto[data-id]').forEach(el => {
-    const n = cantidades[el.dataset.id] || 0;
-    const badge = el.querySelector('.producto-cantidad');
-    if (badge) {
-      badge.textContent = n;
-      badge.hidden = n === 0;
-    }
-    el.classList.toggle('en-carrito', n > 0);
-  });
 }

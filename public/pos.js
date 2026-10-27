@@ -132,13 +132,11 @@ function renderGrid() {
   menu.filter(p => p.category === categoriaActiva).forEach(producto => {
     const div = document.createElement('div');
     div.className = 'producto';
-    div.dataset.id = producto.id;
     div.innerHTML = `
       <div class="producto-foto">
         ${producto.image
           ? `<img class="producto-img" src="${producto.image}" alt="${producto.name}">`
           : `<div class="producto-img-generica">${iconoGenerico(producto.category)}</div>`}
-        <span class="producto-cantidad" hidden></span>
         <div class="producto-boton-mas">+</div>
       </div>
       <div class="producto-info">
@@ -286,24 +284,7 @@ function renderCarrito() {
   const total = Math.max(0, subtotal - (descuentoAplicado ? descuentoAplicado.amount : 0));
   totalEl.textContent = formatoDinero(total);
   botonEnviar.disabled = claves.length === 0;
-  actualizarContadoresProductos();
 }
-// Muestra en cada producto cuántas unidades hay en el carrito (suma todas sus variantes,
-// por ejemplo la misma hamburguesa con y sin cebolla).
-function actualizarContadoresProductos() {
-  const cantidades = {};
-  Object.values(carrito).forEach(i => { cantidades[i.id] = (cantidades[i.id] || 0) + i.qty; });
-  document.querySelectorAll('.producto[data-id]').forEach(el => {
-    const n = cantidades[el.dataset.id] || 0;
-    const badge = el.querySelector('.producto-cantidad');
-    if (badge) {
-      badge.textContent = n;
-      badge.hidden = n === 0;
-    }
-    el.classList.toggle('en-carrito', n > 0);
-  });
-}
-
 
 function limpiarDescuento() {
   descuentoAplicado = null;
