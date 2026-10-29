@@ -818,3 +818,233 @@
   0%, 100% { box-shadow: 0 0 0 0 rgba(193, 39, 45, 0.5); }
   50% { box-shadow: 0 0 0 7px rgba(193, 39, 45, 0); }
 }
+
+/* ---- Cantidad de cada producto en el carrito, con botón para quitar uno ---- */
+.producto-controles {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 2;
+}
+.producto-cantidad {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 9px;
+  border-radius: 17px;
+  background: var(--lechuga);
+  color: var(--blanco);
+  font-size: 18px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.producto-menos {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--rojo);
+  color: var(--blanco);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.producto-cantidad[hidden], .producto-menos[hidden] { display: none; }
+.producto.en-carrito { outline: 3px solid var(--lechuga); outline-offset: -3px; }
+
+/* ===== Caja (solo pos.html, clase "caja" en <body>) =====
+   Cuatro zonas: barra superior, menú (izquierda), carrito (derecha) y, dentro del
+   carrito, una lista de productos que es lo único que se estira. */
+.caja {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.caja .topbar {
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px;
+}
+.caja .topbar h1 { font-size: 20px; min-width: 0; }
+.caja .topbar-derecha { flex-wrap: wrap; justify-content: flex-end; gap: 6px; min-width: 0; }
+.caja .topbar-derecha button { font-size: 13px; padding: 7px 10px; }
+
+.caja .layout {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  flex-direction: row;       /* anula el apilado automático de pos.css en pantallas <900px */
+}
+.caja .menu-panel { flex: 1 1 0; min-width: 0; min-height: 0; padding: 12px; }
+
+/* Categorías en UNA fila que se desliza, para no gastar alto en pantallas bajas */
+.caja .tabs { flex-wrap: nowrap; overflow-x: auto; flex-shrink: 0; margin-bottom: 10px; padding-bottom: 2px; }
+.caja .tab-boton { flex-shrink: 0; font-size: 16px; padding: 10px 16px; white-space: nowrap; }
+
+/* Tarjetas compactas: foto baja y más columnas (la caja necesita ver muchos productos) */
+.caja .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.caja .producto-foto { aspect-ratio: 4 / 3; }
+.caja .producto-info { padding: 8px 10px 10px; }
+.caja .producto .nombre { font-size: 15px; }
+.caja .producto .precio { font-size: 15px; }
+
+/* Carrito: columna con tres zonas. SOLO la lista de productos se estira y hace scroll. */
+.caja .carrito {
+  flex: 0 0 clamp(280px, 32vw, 380px);
+  width: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  overflow: hidden;
+  border-left: 3px solid var(--gris-claro);
+  border-top: none;
+}
+.caja .carrito h2 { margin: 0 0 8px; font-size: 20px; flex-shrink: 0; }
+.caja .opciones-tipo-pedido { flex-shrink: 0; margin-bottom: 8px; }
+.caja .opcion-tipo { padding: 8px 2px; font-size: 12px; }
+.caja .campo-cliente-label { flex-shrink: 0; margin-bottom: 4px; }
+.caja .campo-cliente-fila { flex-shrink: 0; margin-bottom: 8px; }
+.caja .items-carrito { flex: 1 1 90px; min-height: 90px; overflow-y: auto; }
+
+.caja .carrito-pie {
+  flex-shrink: 0;
+  padding-top: 8px;
+  background: var(--blanco);
+}
+.caja .total-linea { margin: 6px 0; font-size: 26px; }
+.caja .boton-enviar { padding: 14px; font-size: 20px; margin-bottom: 4px; }
+.caja .boton-cancelar { padding: 6px; }
+
+/* Atajos (antes flotaban sobre el contenido): ahora fila fija al pie del carrito */
+.caja .atajos-caja {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding-top: 6px;
+}
+.caja .atajos-caja a {
+  position: static;
+  right: auto;
+  bottom: auto;
+  width: 36px;
+  height: 36px;
+  font-size: 17px;
+}
+
+/* Pantalla angosta (tablet vertical, celular): menú arriba y carrito abajo */
+@media (max-width: 700px) {
+  .caja .layout { flex-direction: column; }
+  .caja .menu-panel { flex: 1 1 0; }
+  .caja .carrito {
+    flex: 0 0 auto;
+    max-height: 52dvh;
+    border-left: none;
+    border-top: 3px solid var(--gris-claro);
+  }
+  .caja .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+}
+
+/* Pantalla baja (tablet en horizontal con la barra del navegador): todo más compacto */
+@media (max-height: 640px) {
+  .caja .topbar { padding: 6px 14px; }
+  .caja .carrito { padding: 8px 12px; }
+  .caja .carrito h2 { font-size: 17px; margin-bottom: 4px; }
+  .caja .total-linea { font-size: 22px; margin: 2px 0; }
+  .caja .boton-enviar { padding: 10px; font-size: 18px; }
+  .caja .boton-descuento { padding: 6px; font-size: 14px; margin-bottom: 4px; }
+  .caja .campo-cliente { padding: 7px 10px; }
+  .caja .atajos-caja a { width: 30px; height: 30px; font-size: 14px; }
+}
+
+/* Vertical/angosto: el carrito necesita su pie (total + enviar) siempre visible.
+   Se ahorra alto poniendo el tipo de pedido y el nombre en una sola fila compacta,
+   y el carrito puede ocupar más pantalla. */
+@media (max-width: 700px) {
+  .caja .carrito { max-height: 58dvh; padding: 8px 12px; }
+  .caja .carrito h2 { font-size: 16px; margin-bottom: 4px; }
+  .caja .carrito-datos { display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0; margin-bottom: 6px; }
+  .caja .carrito-datos .opciones-tipo-pedido { flex: 0 0 auto; margin: 0; }
+  .caja .carrito-datos .opcion-tipo { padding: 7px 6px; font-size: 11px; }
+  .caja .carrito-datos .campo-cliente-label { display: none; }
+  .caja .carrito-datos .campo-cliente-fila { flex: 1; margin: 0; min-width: 0; }
+  .caja .carrito-datos .campo-cliente { padding: 6px 8px; font-size: 14px; }
+  .caja .boton-microfono { width: 38px; font-size: 17px; }
+  .caja .items-carrito { flex: 1 1 70px; min-height: 70px; }
+  .caja .total-linea { font-size: 20px; margin: 2px 0; }
+  .caja .boton-enviar { padding: 10px; font-size: 18px; }
+  .caja .boton-descuento { padding: 5px; font-size: 13px; margin-bottom: 4px; }
+  .caja .boton-cancelar { padding: 2px; font-size: 14px; }
+  .caja .atajos-caja { padding-top: 2px; }
+}
+
+.caja .carrito-pie { display: flex; flex-direction: column; }
+.caja .carrito-pie .boton-cancelar { text-align: center; }
+
+/* Interruptor "Imprimir recibo" */
+.opcion-imprimir {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--carbon);
+  cursor: pointer;
+  user-select: none;
+}
+.opcion-imprimir input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--lechuga);
+  cursor: pointer;
+}
+
+/* ===== Vertical / angosto: carrito plegable =====
+   Por defecto muestra solo el título, el total y el botón de enviar (así el menú
+   de productos tiene espacio). El botón "Ver pedido" lo despliega para editarlo. */
+.caja .carrito-cabecera { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.caja .carrito-cabecera h2 { margin: 0; }
+.caja .boton-plegar-carrito { display: none; }
+
+@media (max-width: 700px) {
+  .caja .boton-plegar-carrito {
+    display: inline-block;
+    background: var(--gris-claro);
+    color: var(--carbon);
+    font-size: 13px;
+    font-weight: 800;
+    padding: 6px 12px;
+    border-radius: 16px;
+  }
+  /* plegado: se ocultan datos, lista y descuento */
+  .caja .carrito.plegado .carrito-datos,
+  .caja .carrito.plegado .items-carrito,
+  .caja .carrito.plegado .boton-descuento,
+  .caja .carrito.plegado .linea-descuento,
+  .caja .carrito.plegado .atajos-caja,
+  .caja .carrito.plegado .boton-cancelar { display: none !important; }
+  .caja .carrito.plegado { max-height: none; }
+  /* desplegado: puede ocupar más pantalla */
+  .caja .carrito:not(.plegado) { max-height: 68dvh; }
+}
+
+/* El recuadro del último pedido se dibujaba como una barra vacía: se oculta si no tiene texto */
+.ultimo-pedido:empty { display: none; }
+
+/* Carrito desplegado en vertical: alto definido para que la lista se estire y muestre más filas */
+@media (max-width: 700px) {
+  .caja .carrito:not(.plegado) { height: 66dvh; max-height: none; }
+}

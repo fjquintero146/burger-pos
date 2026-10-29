@@ -126,11 +126,16 @@ function renderGrid() {
   menu.filter(p => p.category === categoriaActiva).forEach(producto => {
     const div = document.createElement('div');
     div.className = 'producto';
+    div.dataset.id = producto.id;
     div.innerHTML = `
       <div class="producto-foto">
         ${producto.image
           ? `<img class="producto-img" src="${producto.image}" alt="${producto.name}">`
           : `<div class="producto-img-generica">${iconoGenerico(producto.category)}</div>`}
+        <div class="producto-controles">
+          <span class="producto-cantidad" hidden></span>
+          <button type="button" class="producto-menos" hidden aria-label="Quitar uno">−</button>
+        </div>
         <div class="producto-boton-mas">+</div>
       </div>
       <div class="producto-info">
@@ -141,6 +146,10 @@ function renderGrid() {
       </div>
     `;
     div.onclick = () => manejarClickProducto(producto);
+    div.querySelector('.producto-menos').onclick = e => {
+      e.stopPropagation();
+      quitarUnoDeProducto(producto.id);
+    };
     gridEl.appendChild(div);
   });
 }
@@ -267,6 +276,7 @@ function renderCarrito() {
     ? 'Tu pedido está vacío'
     : `${cantidad} producto${cantidad > 1 ? 's' : ''}`;
   botonVerPedido.disabled = cantidad === 0;
+  actualizarContadoresProductos();
   botonEnviar.disabled = cantidad === 0;
 
   // si se quitó todo mientras la hoja estaba abierta, se cierra sola
@@ -376,7 +386,33 @@ cargarMarca();
 // Si el administrador cambia el menú o la marca mientras hay tablets activas,
 // se refresca solo (usa el mismo canal de tiempo real que caja y cocina).
 if (window.io) {
-  const socket = io();
+  const socket = io({ query: { publico: "1" } }); // kiosco: sin login, solo menu y marca
   socket.on('menu-updated', cargarMenu);
   socket.on('settings-updated', cargarMarca);
+}
+
+// Muestra en cada producto cuántas unidades hay en el carrito (suma todas sus variantes,
+// por ejemplo la misma hamburguesa con y sin cebolla).
+function actualizarContadoresProductos() {
+  const cantidades = {};
+  Object.values(carrito).forEach(i => { cantidades[i.id] = (cantidades[i.id] || 0) + i.qty; });
+  document.querySelectorAll('.producto[data-id]').forEach(el => {
+    const n = cantidades[el.dataset.id] || 0;
+    const badge = el.querySelector('.producto-cantidad');
+    if (badge) {
+      badge.textContent = n;
+      badge.hidden = n === 0;
+    }
+    const menos = el.querySelector('.producto-menos');
+    if (menos) menos.hidden = n === 0;
+    el.classList.toggle('en-carrito', n > 0);
+  });
+}
+
+// Quita una unidad de un producto desde su tarjeta. Si el producto está en el carrito
+// con varias variantes (por ejemplo con y sin cebolla), quita de la última agregada.
+function quitarUnoDeProducto(productoId) {
+  const claves = Object.keys(carrito).filter(k => carrito[k].id === productoId);
+  if (!claves.length) return;
+  cambiarCantidad(claves[claves.length - 1], -1);
 }

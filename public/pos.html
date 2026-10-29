@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="pos.css">
 </head>
-<body>
+<body class="caja">
 
 <header class="topbar">
   <h1><img id="logoHeader" class="logo-header" style="display:none;"> <span id="tituloHeader">🍔 Toma de Pedidos</span></h1>
@@ -29,42 +29,56 @@
   </section>
 
   <aside class="carrito">
-    <h2 id="tituloCarrito">Pedido Actual</h2>
-    <div class="opciones-tipo-pedido" id="opcionesTipoPedido">
-      <button class="opcion-tipo" data-tipo="para_llevar">🥡 Para Llevar</button>
-      <button class="opcion-tipo" data-tipo="mesa">🍽️ Mesa</button>
-      <button class="opcion-tipo" data-tipo="domicilio">🛵 Domicilio</button>
+    <div class="carrito-cabecera">
+      <h2 id="tituloCarrito">Pedido Actual</h2>
+      <button type="button" class="boton-plegar-carrito" id="botonPlegarCarrito" aria-expanded="false">▲ Ver pedido</button>
     </div>
-    <label class="campo-cliente-label" for="campoCliente">Nombre de quien pide (opcional)</label>
-    <div class="campo-cliente-fila">
-      <input type="text" id="campoCliente" class="campo-cliente" placeholder="Ej: Carlos, mesa 4...">
-      <button type="button" id="botonMicrofono" class="boton-microfono" title="Dictar el nombre por voz" aria-label="Dictar el nombre por voz">🎤</button>
+    <div class="carrito-datos">
+      <div class="opciones-tipo-pedido" id="opcionesTipoPedido">
+        <button class="opcion-tipo" data-tipo="para_llevar">🥡 Para Llevar</button>
+        <button class="opcion-tipo" data-tipo="mesa">🍽️ Mesa</button>
+        <button class="opcion-tipo" data-tipo="domicilio">🛵 Domicilio</button>
+      </div>
+      <label class="campo-cliente-label" for="campoCliente">Nombre de quien pide (opcional)</label>
+      <div class="campo-cliente-fila">
+        <input type="text" id="campoCliente" class="campo-cliente" placeholder="Ej: Carlos, mesa 4...">
+        <button type="button" id="botonMicrofono" class="boton-microfono" title="Dictar el nombre por voz" aria-label="Dictar el nombre por voz">🎤</button>
+      </div>
     </div>
     <div class="items-carrito" id="itemsCarrito">
       <p class="vacio" id="mensajeVacio">Toca un producto para agregarlo</p>
     </div>
 
-    <div class="linea-descuento" id="lineaDescuento" style="display:none;">
-      <span id="textoDescuento"></span>
-      <button id="botonQuitarDescuento" class="boton-quitar-descuento">Quitar</button>
-    </div>
-    <button class="boton-descuento" id="botonDescuento">🏷️ Aplicar descuento</button>
+    <div class="carrito-pie">
+      <div class="linea-descuento" id="lineaDescuento" style="display:none;">
+        <span id="textoDescuento"></span>
+        <button id="botonQuitarDescuento" class="boton-quitar-descuento">Quitar</button>
+      </div>
+      <button class="boton-descuento" id="botonDescuento">🏷️ Aplicar descuento</button>
 
-    <div class="total-linea">
-      <span>Total</span>
-      <span id="total">$0</span>
+      <div class="total-linea">
+        <span>Total</span>
+        <span id="total">$0</span>
+      </div>
+      <label class="opcion-imprimir" for="imprimirRecibo">
+        <input type="checkbox" id="imprimirRecibo" checked>
+        <span>🖨 Imprimir recibo</span>
+      </label>
+      <button class="boton-enviar" id="botonEnviar">ENVIAR A COCINA</button>
+      <button class="boton-cancelar" id="botonCancelar">Cancelar Pedido</button>
+
+      <div class="atajos-caja">
+        <a class="link-admin" href="admin.html" title="Administrar menú" id="linkAdmin" style="display:none;">⚙️</a>
+        <a class="link-ventas" href="sales.html" title="Ver ventas" id="linkVentas" style="display:none;">📊</a>
+        <a class="link-listos" href="listos.html" target="_blank" title="Pantalla de pedidos listos (para un TV)">📺</a>
+        <a class="link-salir" href="#" title="Cerrar sesión" id="botonSalir">🚪</a>
+      </div>
     </div>
-    <button class="boton-enviar" id="botonEnviar">ENVIAR A COCINA</button>
-    <button class="boton-cancelar" id="botonCancelar">Cancelar Pedido</button>
   </aside>
 
 </main>
 
 <div class="toast" id="toast"></div>
-<a class="link-admin" href="admin.html" title="Administrar menú" id="linkAdmin" style="display:none;">⚙️</a>
-<a class="link-ventas" href="sales.html" title="Ver ventas" id="linkVentas" style="display:none;">📊</a>
-<a class="link-listos" href="listos.html" target="_blank" title="Pantalla de pedidos listos (para un TV)">📺</a>
-<a class="link-salir" href="#" title="Cerrar sesión" id="botonSalir">🚪</a>
 
 <div class="modal-fondo" id="modalFondo">
   <div class="modal-caja">

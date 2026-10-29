@@ -132,11 +132,16 @@ function renderGrid() {
   menu.filter(p => p.category === categoriaActiva).forEach(producto => {
     const div = document.createElement('div');
     div.className = 'producto';
+    div.dataset.id = producto.id;
     div.innerHTML = `
       <div class="producto-foto">
         ${producto.image
           ? `<img class="producto-img" src="${producto.image}" alt="${producto.name}">`
           : `<div class="producto-img-generica">${iconoGenerico(producto.category)}</div>`}
+        <div class="producto-controles">
+          <span class="producto-cantidad" hidden></span>
+          <button type="button" class="producto-menos" hidden aria-label="Quitar uno">−</button>
+        </div>
         <div class="producto-boton-mas">+</div>
       </div>
       <div class="producto-info">
@@ -146,6 +151,10 @@ function renderGrid() {
       </div>
     `;
     div.onclick = () => manejarClickProducto(producto);
+    div.querySelector('.producto-menos').onclick = e => {
+      e.stopPropagation();
+      quitarUnoDeProducto(producto.id);
+    };
     gridEl.appendChild(div);
   });
 }
@@ -284,7 +293,26 @@ function renderCarrito() {
   const total = Math.max(0, subtotal - (descuentoAplicado ? descuentoAplicado.amount : 0));
   totalEl.textContent = formatoDinero(total);
   botonEnviar.disabled = claves.length === 0;
+  actualizarContadoresProductos();
 }
+// Muestra en cada producto cuántas unidades hay en el carrito (suma todas sus variantes,
+// por ejemplo la misma hamburguesa con y sin cebolla).
+function actualizarContadoresProductos() {
+  const cantidades = {};
+  Object.values(carrito).forEach(i => { cantidades[i.id] = (cantidades[i.id] || 0) + i.qty; });
+  document.querySelectorAll('.producto[data-id]').forEach(el => {
+    const n = cantidades[el.dataset.id] || 0;
+    const badge = el.querySelector('.producto-cantidad');
+    if (badge) {
+      badge.textContent = n;
+      badge.hidden = n === 0;
+    }
+    const menos = el.querySelector('.producto-menos');
+    if (menos) menos.hidden = n === 0;
+    el.classList.toggle('en-carrito', n > 0);
+  });
+}
+
 
 function limpiarDescuento() {
   descuentoAplicado = null;
@@ -386,7 +414,7 @@ async function procederEnviarPedido(metodoPago) {
       : `Pedido #${pedido.orderNumber} enviado a cocina`);
 
     // Abre la factura en una ventana aparte y lanza la impresión automáticamente.
-    window.open(`receipt.html?id=${pedido.id}`, '_blank', 'width=380,height=640');
+    abrirRecibo(pedido.id);
 
     salirModoEdicion();
     carrito = {};
@@ -549,6 +577,7 @@ function cargarPedidoParaEditar(pedido) {
 
   modalPedidosFondo.classList.remove('visible');
   renderCarrito();
+  actualizarPlegado(false); // al editar, el carrito se muestra desplegado
 }
 
 botonPedidosActivos.onclick = abrirPedidosActivos;
@@ -616,7 +645,7 @@ async function confirmarPago(pedido) {
         throw new Error(data.error || 'No se pudo confirmar el pago');
       }
       mostrarToast(`Pago confirmado — Pedido #${pedido.orderNumber} pasó a cocina`);
-      window.open(`receipt.html?id=${pedido.id}`, '_blank', 'width=380,height=640');
+      abrirRecibo(pedido.id);
       abrirPorCobrar();
     } catch (e) {
       mostrarToast(e.message || 'Error al confirmar el pago');
@@ -928,3 +957,44 @@ intentarEnviarPendientes();
     }
   };
 })();
+
+// Quita una unidad de un producto desde su tarjeta. Si el producto está en el carrito
+// con varias variantes (por ejemplo con y sin cebolla), quita de la última agregada.
+function quitarUnoDeProducto(productoId) {
+  const claves = Object.keys(carrito).filter(k => carrito[k].id === productoId);
+  if (!claves.length) return;
+  cambiarCantidad(claves[claves.length - 1], -1);
+}
+
+// ---------- Imprimir recibo: sí / no ----------
+// La elección se recuerda en este equipo. Por defecto imprime. El enlace
+// "Reimprimir" del último pedido sigue disponible aunque este interruptor esté apagado.
+const imprimirReciboEl = document.getElementById('imprimirRecibo');
+const CLAVE_IMPRIMIR = 'burgerpos_imprimir_recibo';
+
+try {
+  if (localStorage.getItem(CLAVE_IMPRIMIR) === '0') imprimirReciboEl.checked = false;
+} catch (e) { /* sin almacenamiento: queda en "sí" */ }
+
+imprimirReciboEl.addEventListener('change', () => {
+  try { localStorage.setItem(CLAVE_IMPRIMIR, imprimirReciboEl.checked ? '1' : '0'); } catch (e) {}
+});
+
+function abrirRecibo(pedidoId) {
+  if (!imprimirReciboEl.checked) return;
+  window.open(`receipt.html?id=${pedidoId}`, '_blank', 'width=380,height=640');
+}
+
+// ---------- Carrito plegable (solo se nota en pantallas angostas) ----------
+// Plegado muestra solo total + enviar; desplegado deja editar los productos.
+const carritoEl = document.querySelector('.carrito');
+const botonPlegarCarrito = document.getElementById('botonPlegarCarrito');
+
+function actualizarPlegado(plegado) {
+  carritoEl.classList.toggle('plegado', plegado);
+  botonPlegarCarrito.textContent = plegado ? '▲ Ver pedido' : '▼ Ocultar';
+  botonPlegarCarrito.setAttribute('aria-expanded', String(!plegado));
+}
+
+botonPlegarCarrito.onclick = () => actualizarPlegado(!carritoEl.classList.contains('plegado'));
+actualizarPlegado(true);

@@ -334,3 +334,9 @@ body { background: var(--fondo); }
 .confirmacion-aviso { color: var(--gris); font-size: 16px; margin-bottom: 22px; }
 
 #botonNuevoPedido { width: 100%; padding: 18px; font-size: 19px; }
+
+/* Celular muy angosto: la columna de categorías ajusta la letra para no partir palabras largas */
+@media (orientation: portrait) and (max-width: 420px) {
+  .kiosko-cuerpo .tabs { width: 92px; }
+  .kiosko-cuerpo .tab-boton { font-size: 11px; overflow-wrap: normal; word-break: keep-all; padding: 10px 2px; }
+}
