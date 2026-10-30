@@ -1066,3 +1066,23 @@
   object-fit: cover;
 }
 .producto-info { flex-shrink: 0; }
+
+/* ===== Tarjetas de la caja: alto de foto FIJO (sin proporción) =====
+   Con aspect-ratio dentro de una cuadrícula, algunos navegadores calculaban el alto de
+   la fila con un ancho de columna menor al final, y la tarjeta quedaba más baja que su
+   contenido: el nombre y el precio desaparecían. Con alto fijo en píxeles el cálculo no
+   depende del ancho de la columna. La foto se recorta dentro de su caja (object-fit). */
+.caja .producto-foto { aspect-ratio: auto; height: 130px; }
+.caja .producto { min-height: 188px; }
+.caja .producto-info { min-height: 58px; }
+
+/* ===== Vertical: el campo de nombre nunca queda apretado =====
+   Los botones de tipo y el campo de nombre comparten fila SOLO si caben los dos con
+   holgura (tablet). En un celular el campo baja a su propia fila y ocupa todo el ancho. */
+@media (max-width: 700px) {
+  .caja .carrito-datos { flex-wrap: wrap; align-items: stretch; gap: 6px 8px; }
+  .caja .carrito-datos .opciones-tipo-pedido { flex: 1 1 270px; }
+  .caja .carrito-datos .opcion-tipo { flex: 1; white-space: nowrap; }
+  .caja .carrito-datos .campo-cliente-fila { flex: 1 1 220px; min-width: 0; }
+  .caja .carrito-datos .campo-cliente { min-width: 120px; }
+}
