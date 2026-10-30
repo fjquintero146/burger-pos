@@ -157,6 +157,8 @@ function renderGrid() {
     };
     gridEl.appendChild(div);
   });
+  // las tarjetas se dibujan de cero: hay que volver a pintar los contadores del carrito
+  actualizarContadoresProductos();
 }
 
 function manejarClickProducto(producto) {

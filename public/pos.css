@@ -1048,3 +1048,21 @@
 @media (max-width: 700px) {
   .caja .carrito:not(.plegado) { height: 66dvh; max-height: none; }
 }
+
+/* ===== La foto del producto nunca debe cambiar el alto de la tarjeta =====
+   Antes, una imagen con otra proporción (o un tamaño natural grande) estiraba la
+   caja y empujaba el nombre y el precio fuera de la tarjeta, cortándolos.
+   Ahora la caja tiene su proporción fija y la imagen se recorta dentro de ella. */
+.producto-foto {
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.producto-foto .producto-img,
+.producto-foto .producto-img-generica {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.producto-info { flex-shrink: 0; }
