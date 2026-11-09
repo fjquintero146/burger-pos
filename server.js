@@ -18,7 +18,10 @@ const { Server } = require('socket.io');
 const { db, initDb, initSchema, nextOrderNumber } = require('./db');
 const { MODIFICADOR_SQL: MOD, fechaLocalHoy } = require('./fecha');
 const { generarPdfCierre } = require('./pdf-cierre');
-const { enviarCorreoConPdf } = require('./mailer');
+const { enviarCorreoConPdf, enviarCorreo } = require('./mailer');
+const { consultarHistorial } = require('./historial');
+const { construirReciboEmail } = require('./recibo-email');
+const { OFFSET_HORAS } = require('./fecha');
 const { requireTenant, extraerSubdominio } = require('./tenant-middleware');
 const { centralDb, initCentralDb, buscarTenantPorSubdominio, subdominioDisponible } = require('./central-db');
 const { aprovisionarRestaurante, plataformaConfigurada } = require('./tenant-provisioning');
@@ -403,6 +406,57 @@ async function cargarPedidoCompleto(dbClient, orderId) {
     items: itemsResult.rows
   };
 }
+
+// ---------- HISTORIAL DE PEDIDOS (solo caja y administrador; cocina no ve cobros) ----------
+
+// Búsqueda con filtros: día/rango, mes (como rango), franja de horas, estado, método de
+// pago y texto. Debe ir ANTES de /api/orders/:id para que "historial" no se tome como un id.
+app.get('/api/orders/historial', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
+  const resultado = await consultarHistorial(req.db, req.query, { mod: MOD, hoy: fechaLocalHoy() });
+  res.json(resultado);
+}));
+
+// Límite sencillo por usuario para que una cuenta no se use para mandar correos en masa.
+const enviosRecibo = new Map(); // usuario -> { cuenta, inicio }
+const MAX_RECIBOS_POR_HORA = 30;
+function recibosPermitidos(usuario) {
+  const ahora = Date.now();
+  const r = enviosRecibo.get(usuario);
+  if (!r || ahora - r.inicio >= 3600000) { enviosRecibo.set(usuario, { cuenta: 1, inicio: ahora }); return true; }
+  if (r.cuenta >= MAX_RECIBOS_POR_HORA) return false;
+  r.cuenta += 1;
+  return true;
+}
+
+const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+app.post('/api/orders/:id/enviar-recibo', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase();
+  if (email.length > 120 || !RE_EMAIL.test(email)) {
+    return res.status(400).json({ error: 'Escribe un correo válido, por ejemplo cliente@correo.com' });
+  }
+
+  const pedido = await cargarPedidoCompleto(req.db, req.params.id);
+  if (!pedido) return res.status(404).json({ error: 'Pedido no encontrado' });
+  if (pedido.status === 'anulado') return res.status(400).json({ error: 'Este pedido está anulado: no se envía recibo' });
+  if (pedido.status === 'esperando_pago') return res.status(400).json({ error: 'Este pedido todavía no está pagado' });
+
+  if (!recibosPermitidos(req.session.user.username)) {
+    return res.status(429).json({ error: 'Se enviaron muchos recibos en la última hora. Intenta más tarde.' });
+  }
+
+  const ajustes = await req.db.execute("SELECT value FROM settings WHERE key = 'restaurantName'");
+  const nombreLocal = ajustes.rows[0] ? ajustes.rows[0].value : '';
+  const { asunto, text, html } = construirReciboEmail(pedido, { nombreLocal, offsetHoras: OFFSET_HORAS });
+
+  const envio = await enviarCorreo({ to: email, subject: asunto, text, html });
+  if (!envio.enviado) {
+    return res.status(envio.codigo === 'sin_smtp' ? 503 : 502).json({ error: envio.motivo });
+  }
+  res.json({ ok: true, enviadoA: email });
+}));
+
+app.get('/pedidos.html', requirePage('cajero', 'administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'pedidos.html')));
 
 app.get('/api/orders', requireApi('cajero', 'cocina', 'administrador'), ruta(async (req, res) => {
   const idsResult = await req.db.execute('SELECT id FROM orders ORDER BY order_number DESC');

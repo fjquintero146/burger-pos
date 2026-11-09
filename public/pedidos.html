@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historial de pedidos</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="pedidos.css">
+</head>
+<body>
+
+<header class="topbar-hist">
+  <h1>🔎 Historial de pedidos</h1>
+  <a class="boton-volver-hist" href="pos.html">← Volver a caja</a>
+</header>
+
+<main class="hist">
+
+  <section class="filtros" aria-label="Filtros">
+    <div class="chips" id="atajosFecha">
+      <button type="button" class="chip" data-atajo="hoy">Hoy</button>
+      <button type="button" class="chip" data-atajo="ayer">Ayer</button>
+      <button type="button" class="chip" data-atajo="semana">Últimos 7 días</button>
+      <button type="button" class="chip" data-atajo="mes">Este mes</button>
+      <button type="button" class="chip" data-atajo="mespasado">Mes pasado</button>
+    </div>
+
+    <div class="grid-filtros">
+      <label>Desde <input type="date" id="fDesde"></label>
+      <label>Hasta <input type="date" id="fHasta"></label>
+      <label>Mes <input type="month" id="fMes"></label>
+
+      <label>Hora desde <input type="time" id="fHoraDesde"></label>
+      <label>Hora hasta <input type="time" id="fHoraHasta"></label>
+
+      <label>Estado
+        <select id="fEstado">
+          <option value="terminados" selected>Listos y entregados</option>
+          <option value="listo">Solo listos</option>
+          <option value="entregado">Solo entregados</option>
+          <option value="anulado">Anulados</option>
+          <option value="proceso">En proceso</option>
+          <option value="cobrar">Por cobrar</option>
+          <option value="todos">Todos</option>
+        </select>
+      </label>
+
+      <label>Pago
+        <select id="fMetodo">
+          <option value="">Todos</option>
+          <option value="Efectivo">Efectivo</option>
+          <option value="Tarjeta">Tarjeta</option>
+          <option value="Nequi">Nequi</option>
+          <option value="Daviplata">Daviplata</option>
+          <option value="Otro">Otro</option>
+          <option value="sin_especificar">Sin especificar</option>
+        </select>
+      </label>
+
+      <label class="ancho">Buscar
+        <input type="search" id="fBuscar" placeholder="Nº de pedido o nombre" autocomplete="off">
+      </label>
+    </div>
+
+    <div class="chips" id="atajosHora" aria-label="Franjas de hora">
+      <span class="etiqueta-chips">Franja:</span>
+      <button type="button" class="chip" data-franja="">Todo el día</button>
+      <button type="button" class="chip" data-franja="06:00-11:59">Mañana</button>
+      <button type="button" class="chip" data-franja="12:00-14:59">Almuerzo</button>
+      <button type="button" class="chip" data-franja="15:00-17:59">Tarde</button>
+      <button type="button" class="chip" data-franja="18:00-23:59">Noche</button>
+    </div>
+
+    <button type="button" class="enlace-limpiar" id="botonLimpiar">Limpiar filtros</button>
+  </section>
+
+  <section class="resumen-hist" id="resumen" aria-live="polite"></section>
+  <section id="lista" class="lista-hist"></section>
+  <p class="vacio-hist" id="vacio" style="display:none;">No hay pedidos con esos filtros.</p>
+  <button type="button" class="boton-mas" id="botonMas" style="display:none;">Cargar más</button>
+
+</main>
+
+<!-- Detalle de un pedido -->
+<div class="modal-hist" id="modalDetalle" role="dialog" aria-modal="true" aria-labelledby="detalleTitulo">
+  <div class="modal-hist-caja">
+    <div class="detalle-cabecera">
+      <h2 id="detalleTitulo"></h2>
+      <button type="button" class="cerrar-hist" id="cerrarDetalle" aria-label="Cerrar">✕</button>
+    </div>
+    <div id="detalleCuerpo"></div>
+
+    <div class="detalle-acciones">
+      <button type="button" class="accion accion-imprimir" id="botonReimprimir">🖨 Reimprimir recibo</button>
+      <button type="button" class="accion accion-email" id="botonEmail">✉️ Enviar por email</button>
+    </div>
+
+    <div class="fila-email" id="filaEmail" style="display:none;">
+      <input type="email" id="campoEmail" placeholder="correo@cliente.com" autocomplete="off" inputmode="email">
+      <button type="button" class="accion accion-enviar" id="botonEnviarEmail">Enviar</button>
+    </div>
+    <p class="mensaje-email" id="mensajeEmail" aria-live="polite"></p>
+  </div>
+</div>
+
+<script src="pedidos.js"></script>
+</body>
+</html>
