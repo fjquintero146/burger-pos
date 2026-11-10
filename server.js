@@ -67,6 +67,9 @@ app.use(session({
 // En modo SaaS, cada solicitud a /api/* (menos registro/pagos) resuelve a qué
 // restaurante pertenece y deja su conexión lista en req.db. En modo de un
 // solo restaurante, req.db siempre es la única base de datos configurada.
+// Control de acceso por módulo
+const { requireApi, requirePage, refrescarPermisos } =
+    crearControlAcceso({ saasMode: SAAS_MODE });
 const RUTAS_API_PUBLICAS_SAAS = ['/signup', '/check-subdomain'];
 if (SAAS_MODE) {
   app.use('/api', (req, res, next) => {
@@ -100,7 +103,7 @@ function ruta(fn) {
 
 // Protege una API: si no hay sesión, o el rol no está en la lista, corta con 401/403.
 // Control de acceso por módulo (ver auth.js y permisos.js).
-const { requireApi, requirePage, refrescarPermisos } = crearControlAcceso({ saasMode: SAAS_MODE });
+//const { requireApi, requirePage, refrescarPermisos } = crearControlAcceso({ saasMode: SAAS_MODE });
 
 app.post('/api/login', ruta(async (req, res) => {
   const { username, password } = req.body;
