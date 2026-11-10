@@ -23,11 +23,12 @@
   <input type="checkbox" id="navToggle" class="nav-toggle-checkbox">
   <label for="navToggle" class="nav-toggle-btn">☰</label>
   <nav class="admin-nav">
-    <a class="nav-link" href="admin.html">🛠️ Menú</a>
-    <a class="nav-link" href="sales.html">📊 Reporte</a>
-    <a class="nav-link" href="turnos.html">🧾 Turnos</a>
-    <a class="nav-link" href="users.html">👤 Usuarios</a>
-    <a class="nav-link" href="pos.html">🧾 Caja</a>
+    <a class="nav-link" href="admin.html" data-permiso="menu">🛠️ Menú</a>
+    <a class="nav-link" href="sales.html" data-permiso="reportes">📊 Reporte</a>
+    <a class="nav-link" href="turnos.html" data-permiso="turnos">🧾 Turnos</a>
+    <a class="nav-link" href="users.html" data-permiso="usuarios">👤 Usuarios</a>
+    <a class="nav-link" href="pedidos.html" data-permiso="historial">🔎 Historial</a>
+    <a class="nav-link" href="pos.html" data-permiso="caja">🧾 Caja</a>
     <a class="nav-link nav-link-salir" href="#" id="botonSalir">🚪 Cerrar sesión</a>
   </nav>
 </header>
@@ -112,5 +113,6 @@
 </main>
 
 <script src="dashboard.js"></script>
+<script src="permisos-nav.js"></script>
 </body>
 </html>

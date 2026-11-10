@@ -15,6 +15,7 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const { createClient } = require('@libsql/client');
 const { fechaLocalHoy } = require('./fecha');
+const { PRESETS } = require('./permisos');
 
 // ---------- Conexión "single-tenant" (para cuando no se usa el modo SaaS) ----------
 
@@ -126,6 +127,20 @@ async function initSchema(dbClient, options = {}) {
     )
   `);
 
+  // Permisos por usuario: las pantallas que puede ver cada cuenta. Las cuentas que ya
+  // existían reciben la lista de su rol, así que siguen viendo lo mismo que antes.
+  const columnasUsers = (await dbClient.execute('PRAGMA table_info(users)')).rows.map(c => c.name);
+  if (!columnasUsers.includes('permisos')) {
+    await dbClient.execute('ALTER TABLE users ADD COLUMN permisos TEXT');
+  }
+  for (const [rol, lista] of Object.entries(PRESETS)) {
+    await dbClient.execute({
+      sql: 'UPDATE users SET permisos = ? WHERE permisos IS NULL AND role = ?',
+      args: [JSON.stringify(lista), rol]
+    });
+  }
+  await dbClient.execute("UPDATE users SET permisos = '[]' WHERE permisos IS NULL");
+
   // Migración: agrega columnas nuevas a bases de datos creadas con una versión
   // anterior de la app, sin perder los datos que ya tengan.
   const columnasOrders = (await dbClient.execute('PRAGMA table_info(orders)')).rows.map(c => c.name);
@@ -217,8 +232,8 @@ async function initSchema(dbClient, options = {}) {
       const passwordInicial = process.env.ADMIN_PASSWORD || Math.random().toString(36).slice(-10);
       const hash = await bcrypt.hash(passwordInicial, 10);
       await dbClient.execute({
-        sql: 'INSERT INTO users (id, username, password_hash, role, active, created_at) VALUES (?, ?, ?, ?, 1, ?)',
-        args: ['u' + Date.now(), 'admin', hash, 'administrador', new Date().toISOString()]
+        sql: 'INSERT INTO users (id, username, password_hash, role, active, created_at, permisos) VALUES (?, ?, ?, ?, 1, ?, ?)',
+        args: ['u' + Date.now(), 'admin', hash, 'administrador', new Date().toISOString(), JSON.stringify(PRESETS.administrador)]
       });
       console.log('==========================================');
       console.log(' Usuario administrador creado por primera vez:');

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Usuarios del Personal</title>
+<title>Usuarios y permisos</title>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="admin.css">
 <link rel="stylesheet" href="users.css">
@@ -11,15 +11,17 @@
 <body>
 
 <header class="topbar-admin">
-  <h1>👤 Usuarios del Personal</h1>
+  <h1>👤 Usuarios y permisos</h1>
   <input type="checkbox" id="navToggle" class="nav-toggle-checkbox">
   <label for="navToggle" class="nav-toggle-btn">☰</label>
   <nav class="admin-nav">
-    <a class="nav-link" href="admin.html">🛠️ Menú</a>
-    <a class="nav-link" href="settings.html">⚙️ Configuración</a>
-    <a class="nav-link" href="sales.html">📊 Ventas</a>
-    <a class="nav-link" href="dashboard.html">📈 Dashboard</a>
-    <a class="nav-link" href="pos.html">🧾 Caja</a>
+    <a class="nav-link" href="admin.html" data-permiso="menu">🛠️ Menú</a>
+    <a class="nav-link" href="settings.html" data-permiso="config">⚙️ Configuración</a>
+    <a class="nav-link" href="sales.html" data-permiso="reportes">📊 Ventas</a>
+    <a class="nav-link" href="dashboard.html" data-permiso="reportes">📈 Dashboard</a>
+    <a class="nav-link" href="turnos.html" data-permiso="turnos">🧾 Turnos</a>
+    <a class="nav-link" href="pedidos.html" data-permiso="historial">🔎 Historial</a>
+    <a class="nav-link" href="pos.html" data-permiso="caja">🧾 Caja</a>
     <a class="nav-link nav-link-salir" href="#" id="botonSalir">🚪 Cerrar sesión</a>
   </nav>
 </header>
@@ -31,21 +33,23 @@
     <form id="formNuevoUsuario" class="form-producto">
       <div class="campo">
         <label for="nuevoUsuario">Usuario</label>
-        <input type="text" id="nuevoUsuario" placeholder="ej: caja1" required>
+        <input type="text" id="nuevoUsuario" placeholder="ej: caja2" autocomplete="off" required>
       </div>
       <div class="campo">
         <label for="nuevaClave">Clave</label>
-        <input type="text" id="nuevaClave" placeholder="mínimo 4 caracteres" required>
+        <input type="text" id="nuevaClave" placeholder="mínimo 8 caracteres" autocomplete="off" required>
       </div>
-      <div class="campo">
-        <label for="nuevoRol">Rol</label>
-        <select id="nuevoRol">
-          <option value="cajero">Cajero (caja)</option>
-          <option value="cocina">Cocina (KDS)</option>
-          <option value="administrador">Administrador (todo)</option>
+      <div class="campo campo-ancho">
+        <label for="plantilla">Partir de una plantilla</label>
+        <select id="plantilla">
+          <option value="">Personalizada (elijo yo)</option>
+          <option value="cajero">Cajero: caja e historial</option>
+          <option value="cocina">Cocina: solo el tablero de cocina</option>
+          <option value="administrador">Administrador: todas las pantallas</option>
         </select>
       </div>
-      <button type="submit" class="boton-agregar">Crear Usuario</button>
+      <fieldset class="pantallas" id="casillasNuevo"></fieldset>
+      <button type="submit" class="boton-agregar">Crear cuenta</button>
     </form>
     <p class="mensaje" id="mensajeForm"></p>
   </section>
@@ -58,5 +62,6 @@
 </main>
 
 <script src="users.js"></script>
+<script src="permisos-nav.js"></script>
 </body>
 </html>
