@@ -848,10 +848,19 @@ setInterval(intentarEnviarPendientes, 20000);
 async function cargarSesion() {
   const res = await fetch('/api/me');
   const data = await res.json();
-  if (data.user && data.user.role === 'administrador') {
-    document.getElementById('linkAdmin').style.display = 'flex';
-    document.getElementById('linkVentas').style.display = 'flex';
-  }
+  const permisos = (data.user && data.user.permisos) || [];
+  const mostrar = (id, visible) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = visible ? 'flex' : 'none';
+  };
+  // El icono de administración lleva a la primera pantalla de administración que la cuenta sí puede ver.
+  const destino = [['menu', 'admin.html'], ['usuarios', 'users.html'], ['config', 'settings.html'], ['turnos', 'turnos.html']]
+    .find(([permiso]) => permisos.includes(permiso));
+  const linkAdmin = document.getElementById('linkAdmin');
+  if (destino && linkAdmin) linkAdmin.href = destino[1];
+  mostrar('linkAdmin', !!destino);
+  mostrar('linkVentas', permisos.includes('reportes'));
+  mostrar('linkHistorial', permisos.includes('historial'));
 }
 
 async function cargarMarca() {
