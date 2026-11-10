@@ -1086,22 +1086,3 @@
   .caja .carrito-datos .campo-cliente-fila { flex: 1 1 220px; min-width: 0; }
   .caja .carrito-datos .campo-cliente { min-width: 120px; }
 }
-
-
-/* Icono del historial de pedidos: mismo aspecto que el de ventas */
-.link-historial {
-  position: fixed;
-  bottom: 14px;
-  right: 56px;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: rgba(43, 33, 24, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  font-size: 16px;
-  opacity: 0.6;
-}
-.link-historial:hover { opacity: 1; }

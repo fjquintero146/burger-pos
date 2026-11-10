@@ -13,9 +13,6 @@ const http = require('http');
 const os = require('os');
 const path = require('path');
 const bcrypt = require('bcryptjs');
-const { MODULOS, PRESETS, permisosDeUsuario, etiquetaRol } = require('./permisos');
-const { crearControlAcceso } = require('./auth');
-const { validarCambio, validarEliminacion, leerPermisosEntrada } = require('./usuarios-logica');
 const session = require('express-session');
 const { Server } = require('socket.io');
 const { db, initDb, initSchema, nextOrderNumber } = require('./db');
@@ -76,8 +73,6 @@ if (SAAS_MODE) {
 } else {
   app.use((req, res, next) => { req.db = db; next(); });
 }
-// Vuelve a leer la cuenta en cada llamada: un permiso quitado aplica de inmediato.
-app.use('/api', refrescarPermisos);
 
 // Northflank (y la mayoría de plataformas) usan esto para saber que el
 // servidor sigue vivo. Va antes del login a propósito: no requiere sesión.
@@ -99,8 +94,33 @@ function ruta(fn) {
 // ---------- AUTENTICACIÓN ----------
 
 // Protege una API: si no hay sesión, o el rol no está en la lista, corta con 401/403.
-// Control de acceso por módulo (ver auth.js y permisos.js).
-const { requireApi, requirePage, refrescarPermisos } = crearControlAcceso({ saasMode: SAAS_MODE });
+function requireApi(...roles) {
+  return (req, res, next) => {
+    if (!req.session.user) return res.status(401).json({ error: 'Debes iniciar sesión' });
+    // Aunque el navegador ya aísla las cookies por subdominio, esta verificación
+    // es un segundo cierre de seguridad: una sesión de un restaurante NUNCA es
+    // válida para otro, sin importar cómo haya llegado la cookie hasta aquí.
+    if (SAAS_MODE && req.session.user.tenantId !== (req.tenant ? req.tenant.id : null)) {
+      return res.status(401).json({ error: 'Debes iniciar sesión' });
+    }
+    if (roles.length && !roles.includes(req.session.user.role)) {
+      return res.status(403).json({ error: 'No tienes permiso para esto' });
+    }
+    next();
+  };
+}
+
+// Protege una página HTML: si no hay sesión válida, redirige al login.
+function requirePage(...roles) {
+  return (req, res, next) => {
+    const sesionValida = req.session.user &&
+      (!SAAS_MODE || req.session.user.tenantId === (req.tenant ? req.tenant.id : null));
+    if (!sesionValida || (roles.length && !roles.includes(req.session.user.role))) {
+      return res.redirect('/login.html');
+    }
+    next();
+  };
+}
 
 app.post('/api/login', ruta(async (req, res) => {
   const { username, password } = req.body;
@@ -119,10 +139,9 @@ app.post('/api/login', ruta(async (req, res) => {
     id: user.id,
     username: user.username,
     role: user.role,
-    permisos: permisosDeUsuario(user),
     tenantId: req.tenant ? req.tenant.id : null
   };
-  res.json({ ok: true, username: user.username, role: user.role, permisos: permisosDeUsuario(user) });
+  res.json({ ok: true, username: user.username, role: user.role });
 }));
 
 app.post('/api/logout', (req, res) => {
@@ -133,100 +152,61 @@ app.get('/api/me', (req, res) => {
   res.json({ user: req.session.user || null });
 });
 
-// ---------- USUARIOS Y PERMISOS (módulo "usuarios") ----------
+// ---------- USUARIOS (solo administrador) ----------
 
-// Pantallas disponibles, para armar las casillas de cada cuenta.
-app.get('/api/permisos', requireApi('usuarios'), ruta(async (req, res) => {
-  res.json({ modulos: MODULOS, presets: PRESETS });
+app.get('/api/users', requireApi('administrador'), ruta(async (req, res) => {
+  const result = await req.db.execute('SELECT id, username, role, active, created_at FROM users ORDER BY created_at');
+  res.json(result.rows);
 }));
 
-app.get('/api/users', requireApi('usuarios'), ruta(async (req, res) => {
-  const result = await req.db.execute('SELECT id, username, role, active, created_at, permisos FROM users ORDER BY created_at');
-  res.json(result.rows.map(u => {
-    const permisos = permisosDeUsuario(u);
-    return { id: u.id, username: u.username, active: u.active, created_at: u.created_at,
-             permisos, etiqueta: etiquetaRol(permisos) };
-  }));
-}));
-
-// Estado actual de las cuentas, para aplicar las reglas de "no dejar sin administrador".
-async function cuentasParaReglas(dbClient) {
-  const r = await dbClient.execute('SELECT id, role, active, permisos FROM users');
-  return r.rows.map(u => ({ id: u.id, active: u.active, permisos: permisosDeUsuario(u) }));
-}
-
-app.post('/api/users', requireApi('usuarios'), ruta(async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Completa usuario y clave' });
+app.post('/api/users', requireApi('administrador'), ruta(async (req, res) => {
+  const { username, password, role } = req.body;
+  const rolesValidos = ['cajero', 'cocina', 'administrador'];
+  if (!username || !password || !rolesValidos.includes(role)) {
+    return res.status(400).json({ error: 'Completa usuario, clave y un rol válido' });
   }
-  if (String(password).length < 8) {
-    return res.status(400).json({ error: 'La clave debe tener al menos 8 caracteres' });
+  if (String(password).length < 4) {
+    return res.status(400).json({ error: 'La clave debe tener al menos 4 caracteres' });
   }
-  // Se pueden mandar las pantallas elegidas, o solo un rol predefinido (cajero, cocina, administrador).
-  let entrada = req.body.permisos;
-  if (entrada === undefined && PRESETS[req.body.role]) entrada = PRESETS[req.body.role];
-  const { permisos, error } = leerPermisosEntrada(entrada);
-  if (error) return res.status(400).json({ error });
-
   const existe = await req.db.execute({ sql: 'SELECT id FROM users WHERE username = ?', args: [String(username).trim()] });
   if (existe.rows.length) {
     return res.status(400).json({ error: 'Ese usuario ya existe' });
   }
   const hash = await bcrypt.hash(password, 10);
   const id = 'u' + Date.now();
-  const etiqueta = etiquetaRol(permisos);
   await req.db.execute({
-    sql: 'INSERT INTO users (id, username, password_hash, role, active, created_at, permisos) VALUES (?, ?, ?, ?, 1, ?, ?)',
-    args: [id, String(username).trim(), hash, etiqueta, new Date().toISOString(), JSON.stringify(permisos)]
+    sql: 'INSERT INTO users (id, username, password_hash, role, active, created_at) VALUES (?, ?, ?, ?, 1, ?)',
+    args: [id, String(username).trim(), hash, role, new Date().toISOString()]
   });
-  res.json({ id, username: String(username).trim(), active: 1, permisos, etiqueta });
+  res.json({ id, username: username.trim(), role, active: 1 });
 }));
 
-app.put('/api/users/:id', requireApi('usuarios'), ruta(async (req, res) => {
+app.put('/api/users/:id', requireApi('administrador'), ruta(async (req, res) => {
   const existing = (await req.db.execute({ sql: 'SELECT * FROM users WHERE id = ?', args: [req.params.id] })).rows[0];
   if (!existing) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-  let cambioPermisos = null;
-  if (req.body.permisos !== undefined) {
-    cambioPermisos = leerPermisosEntrada(req.body.permisos);
-    if (cambioPermisos.error) return res.status(400).json({ error: cambioPermisos.error });
-  }
-  const activo = req.body.active !== undefined ? !!req.body.active : undefined;
-
-  const error = validarCambio({
-    usuarios: await cuentasParaReglas(req.db),
-    objetivoId: req.params.id,
-    permisos: cambioPermisos ? cambioPermisos.permisos : undefined,
-    activo
-  });
-  if (error) return res.status(400).json({ error });
+  const active = req.body.active !== undefined ? (req.body.active ? 1 : 0) : existing.active;
 
   if (req.body.password) {
-    if (String(req.body.password).length < 8) {
-      return res.status(400).json({ error: 'La clave debe tener al menos 8 caracteres' });
+    if (String(req.body.password).length < 4) {
+      return res.status(400).json({ error: 'La clave debe tener al menos 4 caracteres' });
     }
     const hash = await bcrypt.hash(req.body.password, 10);
-    await req.db.execute({ sql: 'UPDATE users SET password_hash = ? WHERE id = ?', args: [hash, req.params.id] });
-  }
-  if (cambioPermisos) {
     await req.db.execute({
-      sql: 'UPDATE users SET permisos = ?, role = ? WHERE id = ?',
-      args: [JSON.stringify(cambioPermisos.permisos), etiquetaRol(cambioPermisos.permisos), req.params.id]
+      sql: 'UPDATE users SET password_hash = ?, active = ? WHERE id = ?',
+      args: [hash, active, req.params.id]
     });
+  } else {
+    await req.db.execute({ sql: 'UPDATE users SET active = ? WHERE id = ?', args: [active, req.params.id] });
   }
-  if (activo !== undefined) {
-    await req.db.execute({ sql: 'UPDATE users SET active = ? WHERE id = ?', args: [activo ? 1 : 0, req.params.id] });
-  }
+
   res.json({ ok: true });
 }));
 
-app.delete('/api/users/:id', requireApi('usuarios'), ruta(async (req, res) => {
+app.delete('/api/users/:id', requireApi('administrador'), ruta(async (req, res) => {
   if (req.session.user.id === req.params.id) {
     return res.status(400).json({ error: 'No puedes eliminar tu propio usuario mientras tienes la sesión abierta' });
   }
-  const error = validarEliminacion({ usuarios: await cuentasParaReglas(req.db), objetivoId: req.params.id });
-  if (error) return res.status(400).json({ error });
   await req.db.execute({ sql: 'DELETE FROM users WHERE id = ?', args: [req.params.id] });
   res.json({ ok: true });
 }));
@@ -235,15 +215,15 @@ app.delete('/api/users/:id', requireApi('usuarios'), ruta(async (req, res) => {
 // login.html, kiosk.html y receipt.html (ver más abajo) quedan públicas.
 // El resto exige haber iniciado sesión con el rol correcto.
 
-app.get('/pos.html', requirePage('caja'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'pos.html')));
-app.get('/kds.html', requirePage('cocina'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'kds.html')));
-app.get('/admin.html', requirePage('menu'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-app.get('/sales.html', requirePage('reportes'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'sales.html')));
-app.get('/users.html', requirePage('usuarios'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'users.html')));
-app.get('/settings.html', requirePage('config'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'settings.html')));
-app.get('/turnos.html', requirePage('turnos'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'turnos.html')));
-app.get('/dashboard.html', requirePage('reportes'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
-app.get('/receipt.html', requirePage('caja', 'historial'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'receipt.html')));
+app.get('/pos.html', requirePage('cajero', 'administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'pos.html')));
+app.get('/kds.html', requirePage('cocina', 'administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'kds.html')));
+app.get('/admin.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/sales.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'sales.html')));
+app.get('/users.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'users.html')));
+app.get('/settings.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'settings.html')));
+app.get('/turnos.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'turnos.html')));
+app.get('/dashboard.html', requirePage('administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+app.get('/receipt.html', requirePage('cajero', 'administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'receipt.html')));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -256,7 +236,7 @@ app.get('/api/settings', ruta(async (req, res) => {
   res.json(settings);
 }));
 
-app.put('/api/settings', requireApi('config'), ruta(async (req, res) => {
+app.put('/api/settings', requireApi('administrador'), ruta(async (req, res) => {
   const permitido = ['restaurantName', 'logo', 'receiptWidth', 'closeEmailTo'];
   for (const key of permitido) {
     if (req.body[key] !== undefined) {
@@ -288,14 +268,14 @@ app.get('/api/menu', ruta(async (req, res) => {
 
 // ---------- MENÚ: marcar/quitar "agotado hoy" (caja y administrador) ----------
 
-app.get('/api/menu/estado', requireApi('caja', 'cocina'), ruta(async (req, res) => {
+app.get('/api/menu/estado', requireApi('cajero', 'cocina', 'administrador'), ruta(async (req, res) => {
   const hoy = fechaLocalHoy();
   const result = await req.db.execute('SELECT * FROM menu_items WHERE active = 1 ORDER BY category, name');
   const items = result.rows.map(item => ({ ...item, soldOutToday: item.sold_out_date === hoy }));
   res.json(items);
 }));
 
-app.patch('/api/menu/:id/agotado-hoy', requireApi('caja'), ruta(async (req, res) => {
+app.patch('/api/menu/:id/agotado-hoy', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
   const hoy = fechaLocalHoy();
   const existing = (await req.db.execute({ sql: 'SELECT * FROM menu_items WHERE id = ?', args: [req.params.id] })).rows[0];
   if (!existing) return res.status(404).json({ error: 'Producto no encontrado' });
@@ -311,12 +291,12 @@ app.patch('/api/menu/:id/agotado-hoy', requireApi('caja'), ruta(async (req, res)
 
 // ---------- MENÚ (administración: todos los productos) ----------
 
-app.get('/api/admin/menu', requireApi('menu'), ruta(async (req, res) => {
+app.get('/api/admin/menu', requireApi('administrador'), ruta(async (req, res) => {
   const result = await req.db.execute('SELECT * FROM menu_items ORDER BY category, name');
   res.json(result.rows);
 }));
 
-app.post('/api/admin/menu', requireApi('menu'), ruta(async (req, res) => {
+app.post('/api/admin/menu', requireApi('administrador'), ruta(async (req, res) => {
   const { category, name, price } = req.body;
   const ingredients = req.body.ingredients !== undefined ? String(req.body.ingredients).trim() : '';
   const image = req.body.image !== undefined ? String(req.body.image).trim() : '';
@@ -334,7 +314,7 @@ app.post('/api/admin/menu', requireApi('menu'), ruta(async (req, res) => {
   res.json(item.rows[0]);
 }));
 
-app.put('/api/admin/menu/:id', requireApi('menu'), ruta(async (req, res) => {
+app.put('/api/admin/menu/:id', requireApi('administrador'), ruta(async (req, res) => {
   const existingResult = await req.db.execute({ sql: 'SELECT * FROM menu_items WHERE id = ?', args: [req.params.id] });
   const existing = existingResult.rows[0];
   if (!existing) return res.status(404).json({ error: 'Producto no encontrado' });
@@ -367,7 +347,7 @@ app.put('/api/admin/menu/:id', requireApi('menu'), ruta(async (req, res) => {
   res.json(updated.rows[0]);
 }));
 
-app.delete('/api/admin/menu/:id', requireApi('menu'), ruta(async (req, res) => {
+app.delete('/api/admin/menu/:id', requireApi('administrador'), ruta(async (req, res) => {
   const usadoResult = await req.db.execute({
     sql: 'SELECT COUNT(*) AS n FROM order_items WHERE product_id = ?',
     args: [req.params.id]
@@ -431,7 +411,7 @@ async function cargarPedidoCompleto(dbClient, orderId) {
 
 // Búsqueda con filtros: día/rango, mes (como rango), franja de horas, estado, método de
 // pago y texto. Debe ir ANTES de /api/orders/:id para que "historial" no se tome como un id.
-app.get('/api/orders/historial', requireApi('historial'), ruta(async (req, res) => {
+app.get('/api/orders/historial', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
   const resultado = await consultarHistorial(req.db, req.query, { mod: MOD, hoy: fechaLocalHoy() });
   res.json(resultado);
 }));
@@ -450,7 +430,7 @@ function recibosPermitidos(usuario) {
 
 const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-app.post('/api/orders/:id/enviar-recibo', requireApi('historial'), ruta(async (req, res) => {
+app.post('/api/orders/:id/enviar-recibo', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();
   if (email.length > 120 || !RE_EMAIL.test(email)) {
     return res.status(400).json({ error: 'Escribe un correo válido, por ejemplo cliente@correo.com' });
@@ -476,9 +456,9 @@ app.post('/api/orders/:id/enviar-recibo', requireApi('historial'), ruta(async (r
   res.json({ ok: true, enviadoA: email });
 }));
 
-app.get('/pedidos.html', requirePage('historial'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'pedidos.html')));
+app.get('/pedidos.html', requirePage('cajero', 'administrador'), (req, res) => res.sendFile(path.join(__dirname, 'public', 'pedidos.html')));
 
-app.get('/api/orders', requireApi('caja', 'cocina'), ruta(async (req, res) => {
+app.get('/api/orders', requireApi('cajero', 'cocina', 'administrador'), ruta(async (req, res) => {
   const idsResult = await req.db.execute('SELECT id FROM orders ORDER BY order_number DESC');
   const pedidos = [];
   for (const row of idsResult.rows) {
@@ -487,13 +467,13 @@ app.get('/api/orders', requireApi('caja', 'cocina'), ruta(async (req, res) => {
   res.json(pedidos);
 }));
 
-app.get('/api/orders/:id', requireApi('caja', 'cocina', 'historial'), ruta(async (req, res) => {
+app.get('/api/orders/:id', requireApi('cajero', 'cocina', 'administrador'), ruta(async (req, res) => {
   const pedido = await cargarPedidoCompleto(req.db, req.params.id);
   if (!pedido) return res.status(404).json({ error: 'Pedido no encontrado' });
   res.json(pedido);
 }));
 
-app.post('/api/orders', requireApi('caja'), ruta(async (req, res) => {
+app.post('/api/orders', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
   const { items } = req.body;
   const customerName = req.body.customerName ? String(req.body.customerName).trim() : null;
   const paymentMethod = req.body.paymentMethod ? String(req.body.paymentMethod).trim() : null;
@@ -583,7 +563,7 @@ app.post('/api/kiosk/orders', ruta(async (req, res) => {
 
 // Caja confirma que la mesa ya pagó: el pedido pasa a "pendiente" y ahí sí
 // aparece en cocina.
-app.patch('/api/orders/:id/confirmar-pago', requireApi('caja'), ruta(async (req, res) => {
+app.patch('/api/orders/:id/confirmar-pago', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
   const existing = (await req.db.execute({ sql: 'SELECT * FROM orders WHERE id = ?', args: [req.params.id] })).rows[0];
   if (!existing) return res.status(404).json({ error: 'Pedido no encontrado' });
   if (existing.status !== 'esperando_pago') {
@@ -604,7 +584,7 @@ app.patch('/api/orders/:id/confirmar-pago', requireApi('caja'), ruta(async (req,
 // Edita un pedido que ya fue enviado a cocina: reemplaza sus productos
 // (el cliente agregó o quitó algo) y opcionalmente el nombre del cliente.
 // No se puede editar un pedido que ya fue marcado como "entregado" ni uno anulado.
-app.put('/api/orders/:id', requireApi('caja'), ruta(async (req, res) => {
+app.put('/api/orders/:id', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
   const existingResult = await req.db.execute({ sql: 'SELECT * FROM orders WHERE id = ?', args: [req.params.id] });
   const existing = existingResult.rows[0];
   if (!existing) return res.status(404).json({ error: 'Pedido no encontrado' });
@@ -654,7 +634,7 @@ app.put('/api/orders/:id', requireApi('caja'), ruta(async (req, res) => {
 // Anula un pedido con un motivo obligatorio. El pedido NO se borra: queda en
 // el histórico marcado como "anulado", visible en el reporte de anulaciones,
 // y deja de contar como venta (no aparece en cocina ni en el reporte de ventas).
-app.patch('/api/orders/:id/anular', requireApi('caja'), ruta(async (req, res) => {
+app.patch('/api/orders/:id/anular', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
   const existing = (await req.db.execute({ sql: 'SELECT * FROM orders WHERE id = ?', args: [req.params.id] })).rows[0];
   if (!existing) return res.status(404).json({ error: 'Pedido no encontrado' });
   if (existing.voided) {
@@ -676,7 +656,7 @@ app.patch('/api/orders/:id/anular', requireApi('caja'), ruta(async (req, res) =>
   res.json(pedido);
 }));
 
-app.patch('/api/orders/:id/status', requireApi('caja', 'cocina'), ruta(async (req, res) => {
+app.patch('/api/orders/:id/status', requireApi('cajero', 'cocina', 'administrador'), ruta(async (req, res) => {
   const { status } = req.body;
   const validStatuses = ['pendiente', 'preparando', 'listo', 'entregado'];
   if (!validStatuses.includes(status)) {
@@ -715,7 +695,7 @@ app.get('/api/pedidos-listos', ruta(async (req, res) => {
 
 // ---------- VENTAS (reporte por rango de fechas) ----------
 
-app.get('/api/sales', requireApi('reportes'), ruta(async (req, res) => {
+app.get('/api/sales', requireApi('administrador'), ruta(async (req, res) => {
   const hoy = fechaLocalHoy();
   const from = req.query.from || hoy;
   const to = req.query.to || hoy;
@@ -860,7 +840,7 @@ async function calcularResumenTurno(dbClient, turno) {
   return { ventasPorMetodo, totalVentas, totalPedidos, totalEfectivoVendido, expectedCash };
 }
 
-app.get('/api/shifts/actual', requireApi('caja'), ruta(async (req, res) => {
+app.get('/api/shifts/actual', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
   const result = await req.db.execute("SELECT id FROM shifts WHERE status = 'abierto' LIMIT 1");
   if (!result.rows[0]) return res.json({ turno: null });
   const turno = await cargarTurnoCompleto(req.db, result.rows[0].id);
@@ -868,7 +848,7 @@ app.get('/api/shifts/actual', requireApi('caja'), ruta(async (req, res) => {
   res.json({ turno, resumen });
 }));
 
-app.post('/api/shifts', requireApi('caja'), ruta(async (req, res) => {
+app.post('/api/shifts', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
   const abierto = await req.db.execute("SELECT id FROM shifts WHERE status = 'abierto' LIMIT 1");
   if (abierto.rows[0]) {
     return res.status(400).json({ error: 'Ya hay un turno abierto. Ciérralo antes de abrir uno nuevo.' });
@@ -884,7 +864,7 @@ app.post('/api/shifts', requireApi('caja'), ruta(async (req, res) => {
   res.json(turno);
 }));
 
-app.post('/api/shifts/:id/cerrar', requireApi('caja'), ruta(async (req, res) => {
+app.post('/api/shifts/:id/cerrar', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
   const turno = await cargarTurnoCompleto(req.db, req.params.id);
   if (!turno) return res.status(404).json({ error: 'Turno no encontrado' });
   if (turno.status !== 'abierto') return res.status(400).json({ error: 'Este turno ya está cerrado' });
@@ -932,14 +912,14 @@ app.post('/api/shifts/:id/cerrar', requireApi('caja'), ruta(async (req, res) => 
   res.json({ turno: turnoFinal, resumen, correo });
 }));
 
-app.get('/api/shifts/:id/resumen', requireApi('caja'), ruta(async (req, res) => {
+app.get('/api/shifts/:id/resumen', requireApi('cajero', 'administrador'), ruta(async (req, res) => {
   const turno = await cargarTurnoCompleto(req.db, req.params.id);
   if (!turno) return res.status(404).json({ error: 'Turno no encontrado' });
   const resumen = await calcularResumenTurno(req.db, turno);
   res.json({ turno, resumen });
 }));
 
-app.get('/api/shifts', requireApi('turnos'), ruta(async (req, res) => {
+app.get('/api/shifts', requireApi('administrador'), ruta(async (req, res) => {
   const result = await req.db.execute('SELECT id FROM shifts ORDER BY opened_at DESC LIMIT 60');
   const turnos = [];
   for (const row of result.rows) {

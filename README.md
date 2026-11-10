@@ -467,28 +467,3 @@ En la terminal donde está corriendo, presionar `Ctrl + C`.
   un solo local con un servidor corriendo (que es el caso normal). Si en el futuro llegaras a
   necesitar más de una instancia del servidor al mismo tiempo (alta escala), habría que mover
   las sesiones a un almacén compartido como Redis — avísame si llegas a ese punto.
-
-## Usuarios y pantallas por cuenta
-
-En **Usuarios y permisos** (`users.html`) cada cuenta tiene su propia lista de pantallas.
-Al crear una cuenta puedes partir de una plantilla (Cajero, Cocina, Administrador) y luego
-marcar o desmarcar lo que necesite.
-
-Pantallas disponibles:
-
-- **Caja:** tomar pedidos, cobrar, abrir y cerrar turno.
-- **Cocina:** el tablero de cocina.
-- **Historial de pedidos:** buscar pedidos, reimprimir y enviar recibos.
-- **Reportes y dashboard:** ventas y gráficos.
-- **Historial de turnos:** cierres de caja.
-- **Administrar menú:** productos, precios e imágenes.
-- **Configuración:** logo, nombre, papel de factura y correo de cierre.
-- **Usuarios y permisos:** crear cuentas y elegir sus pantallas.
-
-Reglas importantes:
-
-- Los cambios de permisos se aplican en la siguiente acción de la cuenta, sin tener que
-  cerrar sesión.
-- Siempre debe quedar al menos una cuenta activa con "Usuarios y permisos". Si intentas
-  quitárselo a la última, el sistema lo impide.
-- Las cuentas que ya existían conservan lo que veían antes (su rol se convierte en su lista).

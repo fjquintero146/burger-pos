@@ -11,7 +11,6 @@ const { createClient: createPlatformClient } = require('@tursodatabase/api');
 const { createClient: createDbClient } = require('@libsql/client');
 const bcrypt = require('bcryptjs');
 const { initSchema } = require('./db');
-const { PRESETS } = require('./permisos');
 
 function plataformaConfigurada() {
   return !!(process.env.TURSO_PLATFORM_TOKEN && process.env.TURSO_ORG);
@@ -57,8 +56,8 @@ async function aprovisionarRestaurante({ subdomain, restaurantName, adminEmail, 
 
   // 5. Crear el primer usuario (administrador) con los datos del registro
   await dbClient.execute({
-    sql: 'INSERT INTO users (id, username, password_hash, role, active, created_at, permisos) VALUES (?, ?, ?, ?, 1, ?, ?)',
-    args: ['u' + Date.now(), adminEmail, adminPasswordHash, 'administrador', new Date().toISOString(), JSON.stringify(PRESETS.administrador)]
+    sql: 'INSERT INTO users (id, username, password_hash, role, active, created_at) VALUES (?, ?, ?, ?, 1, ?)',
+    args: ['u' + Date.now(), adminEmail, adminPasswordHash, 'administrador', new Date().toISOString()]
   });
 
   // 6. Dejar el nombre del restaurante ya configurado en Configuración
